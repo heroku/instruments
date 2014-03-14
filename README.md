@@ -2,7 +2,7 @@
 
 Instruments allows you to collects metrics over discrete time intervals.
 
-Collected metrics will only reflect observations from that window only,
+Collected metrics will only reflect observations from last time window only,
 rather than including observations from prior windows, contrary to EWMA based metrics.
 
 ## Installation
