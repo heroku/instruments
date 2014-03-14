@@ -2,6 +2,9 @@
 
 Instruments allows you to collects metrics over discrete time intervals.
 
+Collected metrics will only reflect observations from that window only,
+rather than including observations from prior windows, contrary to EWMA based metrics.
+
 ## Installation
 
 Download and install:
@@ -48,4 +51,9 @@ for k, m := range r.Instruments() {
     report(k, s)
   }
 }
-```` 
+```
+
+## See also
+
+* [Go Metrics](https://github.com/rcrowley/go-metrics)
+* [Interval metrics](https://github.com/aphyr/interval-metrics)
