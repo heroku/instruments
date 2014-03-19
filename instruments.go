@@ -20,9 +20,13 @@
 // Theses base instruments are available:
 //
 // - Rate: tracks the rate of values per seconds.
+//
 // - Reservoir: randomly samples values.
+//
 // - Derive: tracks the rate of values based on the delta with previous value.
+//
 // - Gauge: tracks last value.
+//
 // - Timer: tracks durations.
 //
 // You can create custom instruments or compose new instruments form the built-in
