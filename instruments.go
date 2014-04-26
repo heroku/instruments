@@ -55,7 +55,7 @@ import (
 	"time"
 )
 
-const rateScale = float64(time.Second)
+const rateScale = 1e-9
 
 // Discrete represents a single value instrument.
 type Discrete interface {
