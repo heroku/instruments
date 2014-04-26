@@ -6,27 +6,27 @@ import (
 	"github.com/heroku/instruments"
 )
 
-// Registry of all instruments.
+// Registry is a registry of all instruments.
 type Registry struct {
 	instruments map[string]interface{}
 	m           sync.Mutex
 }
 
-// Create a new Register.
+// NewRegistry creates a new Register.
 func NewRegistry() *Registry {
 	return &Registry{
 		instruments: make(map[string]interface{}),
 	}
 }
 
-// Get instrument from the Registry.
+// Get returns an instrument from the Registry.
 func (r *Registry) Get(name string) interface{} {
 	r.m.Lock()
 	defer r.m.Unlock()
 	return r.instruments[name]
 }
 
-// Register a new instrument or return the existing one.
+// Register registers a new instrument or return the existing one.
 func (r *Registry) Register(name string, v interface{}) interface{} {
 	r.m.Lock()
 	defer r.m.Unlock()
@@ -43,14 +43,14 @@ func (r *Registry) Register(name string, v interface{}) interface{} {
 	return nil
 }
 
-// Unregister the instrument matching the given name.
+// Unregister remove from the registry the instrument matching the given name.
 func (r *Registry) Unregister(name string) {
 	r.m.Lock()
 	defer r.m.Unlock()
 	delete(r.instruments, name)
 }
 
-// Returns and reset all instruments.
+// Snapshot returns and reset all instruments.
 func (r *Registry) Snapshot() map[string]interface{} {
 	r.m.Lock()
 	defer r.m.Unlock()
@@ -62,7 +62,7 @@ func (r *Registry) Snapshot() map[string]interface{} {
 	return instruments
 }
 
-// Returns all instruments.
+// Instruments returns all instruments.
 func (r *Registry) Instruments() map[string]interface{} {
 	r.m.Lock()
 	defer r.m.Unlock()
@@ -73,7 +73,7 @@ func (r *Registry) Instruments() map[string]interface{} {
 	return instruments
 }
 
-// Returns the numbers of instruments.
+// Size returns the numbers of instruments in the registry.
 func (r *Registry) Size() int {
 	r.m.Lock()
 	defer r.m.Unlock()

@@ -57,35 +57,35 @@ import (
 
 const rateScale = float64(time.Second)
 
-// Represents a single value instrument.
+// Discrete represents a single value instrument.
 type Discrete interface {
 	Snapshot() int64
 }
 
-// Represents a sample instrument.
+// Sample represents a sample instrument.
 type Sample interface {
 	Snapshot() []int64
 }
 
-// Track the rate of values per second.
+// Rate tracks the rate of values per second.
 type Rate struct {
 	count int64
 	time  int64
 }
 
-// Create a new rate instrument.
+// NewRate creates a new rate instrument.
 func NewRate() *Rate {
 	return &Rate{
 		time: time.Now().UnixNano(),
 	}
 }
 
-// Update rate value.
+// Update updates rate value.
 func (r *Rate) Update(v int64) {
 	atomic.AddInt64(&r.count, v)
 }
 
-// Return the number of values per second since the last snapshot,
+// Snapshot returns the number of values per second since the last snapshot,
 // and reset the count to zero.
 func (r *Rate) Snapshot() int64 {
 	now := time.Now().UnixNano()
@@ -95,13 +95,13 @@ func (r *Rate) Snapshot() int64 {
 	return Ceil(s)
 }
 
-// Track the rate of deltas per seconds.
+// Derive tracks the rate of deltas per seconds.
 type Derive struct {
 	rate  *Rate
 	value int64
 }
 
-// Create a new derive instruments.
+// NewDerive creates a new derive instruments.
 func NewDerive(v int64) *Derive {
 	return &Derive{
 		value: v,
@@ -109,19 +109,19 @@ func NewDerive(v int64) *Derive {
 	}
 }
 
-// Update rate value based on the stored previous value.
+// Update update rate value based on the stored previous value.
 func (d *Derive) Update(v int64) {
 	p := atomic.SwapInt64(&d.value, v)
 	d.rate.Update(v - p)
 }
 
-// Return the number of values per seconds since the last snapshot,
+// Snapshot returns the number of values per seconds since the last snapshot,
 // and reset the count to zero.
 func (d *Derive) Snapshot() int64 {
 	return d.rate.Snapshot()
 }
 
-// Track a sample of values.
+// Reservoir tracks a sample of values.
 type Reservoir struct {
 	size   int64
 	values []int64
@@ -130,7 +130,7 @@ type Reservoir struct {
 
 const defaultReservoirSize = 1028
 
-// Create a new reservoir of the given size.
+// NewReservoir creates a new reservoir of the given size.
 // If size is negative, it will create a sample of DefaultReservoirSize size.
 func NewReservoir(size int64) *Reservoir {
 	if size <= 0 {
@@ -141,7 +141,7 @@ func NewReservoir(size int64) *Reservoir {
 	}
 }
 
-// Fill the sample randomly with given value,
+// Update fills the sample randomly with given value,
 // for reference, see: http://en.wikipedia.org/wiki/Reservoir_sampling
 func (r *Reservoir) Update(v int64) {
 	r.m.Lock()
@@ -159,7 +159,7 @@ func (r *Reservoir) Update(v int64) {
 	}
 }
 
-// Return sample as a sorted array.
+// Snapshot returns sample as a sorted array.
 func (r *Reservoir) Snapshot() []int64 {
 	r.m.Lock()
 	defer r.m.Unlock()
@@ -171,52 +171,52 @@ func (r *Reservoir) Snapshot() []int64 {
 	return v
 }
 
-// Tracks a value.
+// Gauge tracks a value.
 type Gauge struct {
 	value int64
 }
 
-// Creates a new Gauge with the given value.
+// NewGauge creates a new Gauge with the given value.
 func NewGauge(v int64) *Gauge {
 	return &Gauge{
 		value: v,
 	}
 }
 
-// Update the current stored value.
+// Update updates the current stored value.
 func (g *Gauge) Update(v int64) {
 	atomic.StoreInt64(&g.value, v)
 }
 
-// Return the current value.
+// Snapshot returns the current value.
 func (g *Gauge) Snapshot() int64 {
 	return atomic.LoadInt64(&g.value)
 }
 
-// Tracks durations.
+// Timer tracks durations.
 type Timer struct {
 	r *Reservoir
 }
 
-// Create a new Timer with the given sample size.
+// NewTimer creates a new Timer with the given sample size.
 func NewTimer(size int64) *Timer {
 	return &Timer{
 		r: NewReservoir(size),
 	}
 }
 
-// Add duration to the sample in ms.
+// Update adds duration to the sample in ms.
 func (t *Timer) Update(d time.Duration) {
 	v := Floor(d.Seconds() * 1000)
 	t.r.Update(v)
 }
 
-// Returns durations sample as a sorted array.
+// Snapshot returns durations sample as a sorted array.
 func (t *Timer) Snapshot() []int64 {
 	return t.r.Snapshot()
 }
 
-// Records given function execution time.
+// Time records given function execution time.
 func (t *Timer) Time(f func()) {
 	ts := time.Now()
 	f()

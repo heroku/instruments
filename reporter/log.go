@@ -10,7 +10,7 @@ import (
 	"github.com/heroku/instruments"
 )
 
-// Log metrics using logfmt every given duration.
+// Log logs metrics using logfmt every given duration.
 func Log(source string, r *Registry, d time.Duration) {
 	for {
 		time.Sleep(d)

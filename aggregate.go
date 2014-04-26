@@ -2,7 +2,7 @@ package instruments
 
 import "math"
 
-// Returns the nearest value to the given quantile.
+// Quantile returns the nearest value to the given quantile.
 func Quantile(v []int64, q float64) int64 {
 	n := len(v)
 	if n == 0 {
@@ -13,7 +13,7 @@ func Quantile(v []int64, q float64) int64 {
 	return v[i]
 }
 
-// Returns the mean of the given sample.
+// Mean returns the mean of the given sample.
 func Mean(values []int64) float64 {
 	if len(values) == 0 {
 		return 0.0
@@ -25,12 +25,12 @@ func Mean(values []int64) float64 {
 	return float64(sum) / float64(len(values))
 }
 
-// Returns standard deviation of the given sample.
+// StandardDeviation returns standard deviation of the given sample.
 func StandardDeviation(v []int64) float64 {
 	return math.Sqrt(Variance(v))
 }
 
-// Returns variance if the given sample.
+// Variance returns variance if the given sample.
 func Variance(values []int64) float64 {
 	if len(values) == 0 {
 		return 0.0
@@ -44,7 +44,7 @@ func Variance(values []int64) float64 {
 	return float64(sum) / float64(len(values))
 }
 
-// Returns maximun value of the given sample.
+// Max returns maximun value of the given sample.
 func Max(values []int64) int64 {
 	if len(values) == 0 {
 		return 0
@@ -61,7 +61,7 @@ func Max(values []int64) int64 {
 	return max
 }
 
-// Returns minimun value of the given sample.
+// Min returns minimun value of the given sample.
 func Min(values []int64) int64 {
 	if len(values) == 0 {
 		return 0
