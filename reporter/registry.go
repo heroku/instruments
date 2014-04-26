@@ -1,6 +1,10 @@
-package instruments
+package reporter
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/heroku/instruments"
+)
 
 // Registry of all instruments.
 type Registry struct {
@@ -27,7 +31,7 @@ func (r *Registry) Register(name string, v interface{}) interface{} {
 	r.m.Lock()
 	defer r.m.Unlock()
 	switch v.(type) {
-	case Discrete, Sample:
+	case instruments.Discrete, instruments.Sample:
 		i, present := r.instruments[name]
 		if present {
 			return i

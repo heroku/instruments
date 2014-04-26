@@ -1,12 +1,8 @@
 package reporter
 
-import (
-	"time"
-
-	"github.com/heroku/instruments"
-)
+import "time"
 
 func ExampleLog() {
-	registry := instruments.NewRegistry()
+	registry := NewRegistry()
 	go Log("source", registry, time.Minute)
 }

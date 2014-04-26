@@ -1,18 +1,22 @@
-package instruments
+package reporter
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/heroku/instruments"
+)
 
 func BenchmarkRegistry(b *testing.B) {
 	r := NewRegistry()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Register("foo", NewRate())
+		r.Register("foo", instruments.NewRate())
 	}
 }
 
 func BenchmarkInstruments(b *testing.B) {
 	r := NewRegistry()
-	r.Register("foo", NewRate())
+	r.Register("foo", instruments.NewRate())
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Instruments()
@@ -21,7 +25,7 @@ func BenchmarkInstruments(b *testing.B) {
 
 func TestRegistration(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", NewRate())
+	r.Register("foo", instruments.NewRate())
 	if registered := r.Instruments(); len(registered) != 1 {
 		t.Error("instrument not registered")
 	}
@@ -33,9 +37,9 @@ func TestRegistration(t *testing.T) {
 
 func TestGetOrRegisterInstrument(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", NewRate())
-	i := r.Register("foo", NewGauge(0))
-	if _, ok := i.(*Rate); !ok {
+	r.Register("foo", instruments.NewRate())
+	i := r.Register("foo", instruments.NewGauge(0))
+	if _, ok := i.(*instruments.Rate); !ok {
 		t.Fatal("wrong instrument type")
 	}
 	registered := r.Instruments()
@@ -46,14 +50,14 @@ func TestGetOrRegisterInstrument(t *testing.T) {
 	if !p {
 		t.Fatal("instrument not found")
 	}
-	if _, ok := i.(*Rate); !ok {
+	if _, ok := i.(*instruments.Rate); !ok {
 		t.Fatal("wrong instrument type")
 	}
 }
 
 func TestGetInstrument(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", NewRate())
+	r.Register("foo", instruments.NewRate())
 	if r := r.Get("foo"); r == nil {
 		t.Error("instrument not returned")
 	}
@@ -61,7 +65,7 @@ func TestGetInstrument(t *testing.T) {
 
 func TestSnapshotInstruments(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", NewRate())
+	r.Register("foo", instruments.NewRate())
 	if r.Size() != 1 {
 		t.Error("instrument not registered")
 	}
