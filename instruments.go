@@ -76,19 +76,19 @@ func Scale(o, d time.Duration) float64 {
 type Rate struct {
 	count int64
 	time  int64
-	scale float64
+	unit  time.Duration
 }
 
 // NewRate creates a new rate instrument.
 func NewRate() *Rate {
-	return NewRateScale(rateScale)
+	return NewRateScale(time.Second)
 }
 
-// NewRateScale creates a new rate instruments with the given conversion factor.
-func NewRateScale(s float64) *Rate {
+// NewRateScale creates a new rate instruments with the given unit.
+func NewRateScale(d time.Duration) *Rate {
 	return &Rate{
-		time:  time.Now().UnixNano(),
-		scale: s,
+		time: time.Now().UnixNano(),
+		unit: d,
 	}
 }
 
@@ -103,8 +103,8 @@ func (r *Rate) Snapshot() int64 {
 	now := time.Now().UnixNano()
 	t := atomic.SwapInt64(&r.time, now)
 	c := atomic.SwapInt64(&r.count, 0)
-	s := float64(c) / r.scale / float64(now-t)
-	return Ceil(s)
+	s := float64(c) / rateScale / float64(now-t)
+	return Ceil(s * Scale(r.unit, time.Second))
 }
 
 // Derive tracks the rate of deltas per seconds.
@@ -121,11 +121,11 @@ func NewDerive(v int64) *Derive {
 	}
 }
 
-// NewDeriveScale creates a new derive instruments with the given conversion factor.
-func NewDeriveScale(v int64, s float64) *Derive {
+// NewDeriveScale creates a new derive instruments with the given unit.
+func NewDeriveScale(v int64, d time.Duration) *Derive {
 	return &Derive{
 		value: v,
-		rate:  NewRateScale(s),
+		rate:  NewRateScale(d),
 	}
 }
 
