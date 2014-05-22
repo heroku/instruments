@@ -38,7 +38,7 @@ timer.Time(func() {
 
 Instruments support two types of instruments: Discrete instruments return a single value, and Sample instruments a sorted array of values.
 
-Theses base instruments are available:
+These base instruments are available:
 
 - Rate: tracks the rate of values per seconds.
 - Reservoir: randomly samples values.
