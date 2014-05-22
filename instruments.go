@@ -67,16 +67,28 @@ type Sample interface {
 	Snapshot() []int64
 }
 
+// Scale returns a conversion factor from one unit to another.
+func Scale(o, d time.Duration) float64 {
+	return float64(o) / float64(d)
+}
+
 // Rate tracks the rate of values per second.
 type Rate struct {
 	count int64
 	time  int64
+	scale float64
 }
 
 // NewRate creates a new rate instrument.
 func NewRate() *Rate {
+	return NewRateScale(rateScale)
+}
+
+// NewRateScale creates a new rate instruments with the given conversion factor.
+func NewRateScale(s float64) *Rate {
 	return &Rate{
-		time: time.Now().UnixNano(),
+		time:  time.Now().UnixNano(),
+		scale: s,
 	}
 }
 
@@ -91,7 +103,7 @@ func (r *Rate) Snapshot() int64 {
 	now := time.Now().UnixNano()
 	t := atomic.SwapInt64(&r.time, now)
 	c := atomic.SwapInt64(&r.count, 0)
-	s := float64(c) / rateScale / float64(now-t)
+	s := float64(c) / r.scale / float64(now-t)
 	return Ceil(s)
 }
 
@@ -106,6 +118,14 @@ func NewDerive(v int64) *Derive {
 	return &Derive{
 		value: v,
 		rate:  NewRate(),
+	}
+}
+
+// NewDeriveScale creates a new derive instruments with the given conversion factor.
+func NewDeriveScale(v int64, s float64) *Derive {
+	return &Derive{
+		value: v,
+		rate:  NewRateScale(s),
 	}
 }
 
