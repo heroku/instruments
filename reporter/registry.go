@@ -35,10 +35,9 @@ func (r *Registry) Register(name string, v interface{}) interface{} {
 		i, present := r.instruments[name]
 		if present {
 			return i
-		} else {
-			r.instruments[name] = v
-			return v
 		}
+		r.instruments[name] = v
+		return v
 	}
 	return nil
 }

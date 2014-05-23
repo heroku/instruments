@@ -52,7 +52,7 @@ func Max(values []int64) int64 {
 	if isSorted(values) {
 		return values[len(values)-1]
 	}
-	var max int64 = math.MinInt64
+	var max = math.MinInt64
 	for _, v := range values {
 		if max < v {
 			max = v
@@ -69,7 +69,7 @@ func Min(values []int64) int64 {
 	if isSorted(values) {
 		return values[0]
 	}
-	var min int64 = math.MaxInt64
+	var min = math.MaxInt64
 	for _, v := range values {
 		if min > v {
 			min = v

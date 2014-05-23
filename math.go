@@ -30,9 +30,8 @@ func isSorted(d int64array) bool {
 func min(s, v int) int {
 	if s <= v {
 		return s
-	} else {
-		return v
 	}
+	return v
 }
 
 // Ceil returns the least integer value greater than or equal to x.
