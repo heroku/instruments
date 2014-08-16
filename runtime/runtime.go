@@ -63,6 +63,12 @@ type StackInUse struct {
 	m   sync.Mutex
 }
 
+func NewStackInUse() *StackInUse {
+	return &StackInUse{
+		g: instruments.NewGauge(0),
+	}
+}
+
 func (su *StackInUse) Update() {
 	su.m.Lock()
 	defer su.m.Unlock()
