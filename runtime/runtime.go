@@ -30,7 +30,7 @@ func (a *Allocated) Update() {
 }
 
 func (a *Allocated) Snapshot() int64 {
-	return a.Snapshot()
+	return a.g.Snapshot()
 }
 
 type HeapAllocated struct {
@@ -96,7 +96,7 @@ func (gr *Goroutine) Update() {
 }
 
 func (gr *Goroutine) Snapshot() int64 {
-	return gr.Snapshot()
+	return gr.g.Snapshot()
 }
 
 type Cgo struct {
@@ -114,7 +114,7 @@ func (c *Cgo) Update() {
 }
 
 func (c *Cgo) Snapshot() int64 {
-	return c.Snapshot()
+	return c.g.Snapshot()
 }
 
 type Frees struct {
@@ -138,7 +138,7 @@ func (f *Frees) Update() {
 }
 
 func (f *Frees) Snapshot() int64 {
-	return f.Snapshot()
+	return f.d.Snapshot()
 }
 
 type Lookups struct {
@@ -162,7 +162,7 @@ func (l *Lookups) Update() {
 }
 
 func (l *Lookups) Snapshot() int64 {
-	return l.Snapshot()
+	return l.d.Snapshot()
 }
 
 type Mallocs struct {
@@ -186,7 +186,7 @@ func (m *Mallocs) Update() {
 }
 
 func (m *Mallocs) Snapshot() int64 {
-	return m.Snapshot()
+	return m.d.Snapshot()
 }
 
 type NumGC struct {
@@ -210,7 +210,7 @@ func (ng *NumGC) Update() {
 }
 
 func (ng *NumGC) Snapshot() int64 {
-	return ng.Snapshot()
+	return ng.d.Snapshot()
 }
 
 type Pauses struct {
@@ -276,5 +276,5 @@ func (tp *TotalPause) Update() {
 }
 
 func (tp *TotalPause) Snapshot() int64 {
-	return tp.Snapshot()
+	return tp.g.Snapshot()
 }
