@@ -9,18 +9,21 @@ import (
 	"github.com/heroku/instruments"
 )
 
+// Allocated collects the number of bytes allocated and still in use.
 type Allocated struct {
 	g   *instruments.Gauge
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
+// NewAllocated creates a new Allocated.
 func NewAllocated() *Allocated {
 	return &Allocated{
 		g: instruments.NewGauge(0),
 	}
 }
 
+// Update updates the number of bytes allocated and still in use.
 func (a *Allocated) Update() {
 	a.m.Lock()
 	defer a.m.Unlock()
@@ -29,23 +32,27 @@ func (a *Allocated) Update() {
 	a.g.Update(int64(a.mem.Alloc))
 }
 
+// Snapshot returns the current number of bytes allocated and still in use.
 func (a *Allocated) Snapshot() int64 {
 	return a.g.Snapshot()
 }
 
-type HeapAllocated struct {
+// Heap collects the number of bytes allocated and still in use in the heap.
+type Heap struct {
 	g   *instruments.Gauge
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
-func NewHeapAllocated() *HeapAllocated {
-	return &HeapAllocated{
+// NewHeap creates a new Heap.
+func NewHeap() *Heap {
+	return &Heap{
 		g: instruments.NewGauge(0),
 	}
 }
 
-func (ha *HeapAllocated) Update() {
+// Update updates the number of bytes allocated and still in use in the heap.
+func (ha *Heap) Update() {
 	ha.m.Lock()
 	defer ha.m.Unlock()
 
@@ -53,82 +60,98 @@ func (ha *HeapAllocated) Update() {
 	ha.g.Update(int64(ha.mem.HeapAlloc))
 }
 
-func (ha *HeapAllocated) Snapshot() int64 {
+// Snapshot returns the current number of bytes allocated and still in use in the heap.
+func (ha *Heap) Snapshot() int64 {
 	return ha.g.Snapshot()
 }
 
-type StackInUse struct {
+// Stack collects the number of bytes used now in the stack.
+type Stack struct {
 	g   *instruments.Gauge
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
-func NewStackInUse() *StackInUse {
-	return &StackInUse{
+// NewStack creates a new Stack.
+func NewStack() *Stack {
+	return &Stack{
 		g: instruments.NewGauge(0),
 	}
 }
 
-func (su *StackInUse) Update() {
+// Update updates the number of bytes allocated and still in use in the stack.
+func (su *Stack) Update() {
 	su.m.Lock()
 	defer su.m.Unlock()
 
 	runtime.ReadMemStats(&su.mem)
-	su.g.Update(int64(su.mem.StackInuse))
+	su.g.Update(int64(su.mem.Stack))
 }
 
-func (su *StackInUse) Snapshot() int64 {
+// Snapshot returns the current number of bytes allocated and still in use in the stack.
+func (su *Stack) Snapshot() int64 {
 	return su.g.Snapshot()
 }
 
+// Goroutine collects the number of existing goroutines.
 type Goroutine struct {
 	g *instruments.Gauge
 }
 
+// NewGoroutine creats a new Goroutine.
 func NewGoroutine() *Goroutine {
 	return &Goroutine{
 		g: instruments.NewGauge(0),
 	}
 }
 
+// Update udpates the number of existing goroutines.
 func (gr *Goroutine) Update() {
 	gr.g.Update(int64(runtime.NumGoroutine()))
 }
 
+// Snapshot returns the current number of existing goroutines
 func (gr *Goroutine) Snapshot() int64 {
 	return gr.g.Snapshot()
 }
 
+// Cgo collects the number of cgo calls made by the current process.
 type Cgo struct {
 	g *instruments.Gauge
 }
 
+// NewCgo creats a new Cgo.
 func NewCgo() *Cgo {
 	return &Cgo{
 		g: instruments.NewGauge(0),
 	}
 }
 
+// Update updates the number of cgo calls made by the current process.
 func (c *Cgo) Update() {
 	c.g.Update(runtime.NumCgoCall())
 }
 
+// Snapshot returns the current number of cgo calls made.
 func (c *Cgo) Snapshot() int64 {
 	return c.g.Snapshot()
 }
 
+// Frees collects the number of frees.
 type Frees struct {
 	d   *instruments.Derive
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
+// NewFrees creates a Frees.
 func NewFrees() *Frees {
 	return &Frees{
 		d: instruments.NewDerive(0),
 	}
 }
 
+// Update updates the number of frees.
 func (f *Frees) Update() {
 	f.m.Lock()
 	defer f.m.Unlock()
@@ -137,22 +160,26 @@ func (f *Frees) Update() {
 	f.d.Update(int64(f.mem.Frees))
 }
 
+// Snapshot returns the number of frees.
 func (f *Frees) Snapshot() int64 {
 	return f.d.Snapshot()
 }
 
+// Lookups collects the number of pointer lookups.
 type Lookups struct {
 	d   *instruments.Derive
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
+// NewLookups creates a new Lookups.
 func NewLookups() *Lookups {
 	return &Lookups{
 		d: instruments.NewDerive(0),
 	}
 }
 
+// Update updates the number of pointer lookups.
 func (l *Lookups) Update() {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -161,22 +188,26 @@ func (l *Lookups) Update() {
 	l.d.Update(int64(l.mem.Lookups))
 }
 
+// Snapshot returns the number of pointer lookups.
 func (l *Lookups) Snapshot() int64 {
 	return l.d.Snapshot()
 }
 
+// Mallocs collects the number of mallocs.
 type Mallocs struct {
 	d   *instruments.Derive
 	mem runtime.MemStats
 	m   sync.Mutex
 }
 
+// NewMallocs creates a new Mallocs.
 func NewMallocs() *Mallocs {
 	return &Mallocs{
 		d: instruments.NewDerive(0),
 	}
 }
 
+// Update updates the number of mallocs.
 func (m *Mallocs) Update() {
 	m.m.Lock()
 	defer m.m.Unlock()
@@ -185,34 +216,12 @@ func (m *Mallocs) Update() {
 	m.d.Update(int64(m.mem.Mallocs))
 }
 
+// Snapshot returns the number of mallocs.
 func (m *Mallocs) Snapshot() int64 {
 	return m.d.Snapshot()
 }
 
-type NumGC struct {
-	d   *instruments.Derive
-	mem runtime.MemStats
-	m   sync.Mutex
-}
-
-func NewNumGC() *NumGC {
-	return &NumGC{
-		d: instruments.NewDerive(0),
-	}
-}
-
-func (ng *NumGC) Update() {
-	ng.m.Lock()
-	defer ng.m.Unlock()
-
-	runtime.ReadMemStats(&ng.mem)
-	ng.d.Update(int64(ng.mem.NumGC))
-}
-
-func (ng *NumGC) Snapshot() int64 {
-	return ng.d.Snapshot()
-}
-
+// Pauses collects pauses times.
 type Pauses struct {
 	r   *instruments.Reservoir
 	n   uint32
@@ -220,12 +229,14 @@ type Pauses struct {
 	m   sync.Mutex
 }
 
+// NewPauses creates a new Pauses.
 func NewPauses(size int64) *Pauses {
 	return &Pauses{
 		r: instruments.NewReservoir(size),
 	}
 }
 
+// Update updates GC pauses times.
 func (p *Pauses) Update() {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -251,30 +262,7 @@ func (p *Pauses) Update() {
 	}
 }
 
+// Snapshot returns a sample of GC pauses times.
 func (p *Pauses) Snapshot() []int64 {
 	return p.r.Snapshot()
-}
-
-type TotalPause struct {
-	g   *instruments.Gauge
-	mem runtime.MemStats
-	m   sync.Mutex
-}
-
-func NewTotalPause() *TotalPause {
-	return &TotalPause{
-		g: instruments.NewGauge(0),
-	}
-}
-
-func (tp *TotalPause) Update() {
-	tp.m.Lock()
-	defer tp.m.Unlock()
-
-	runtime.ReadMemStats(&tp.mem)
-	tp.g.Update(int64(tp.mem.PauseTotalNs))
-}
-
-func (tp *TotalPause) Snapshot() int64 {
-	return tp.g.Snapshot()
 }
