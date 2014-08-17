@@ -81,17 +81,17 @@ func NewStack() *Stack {
 }
 
 // Update updates the number of bytes allocated and still in use in the stack.
-func (su *Stack) Update() {
-	su.m.Lock()
-	defer su.m.Unlock()
+func (s *Stack) Update() {
+	s.m.Lock()
+	defer s.m.Unlock()
 
-	runtime.ReadMemStats(&su.mem)
-	su.g.Update(int64(su.mem.Stack))
+	runtime.ReadMemStats(&s.mem)
+	s.g.Update(int64(s.mem.StackInuse))
 }
 
 // Snapshot returns the current number of bytes allocated and still in use in the stack.
-func (su *Stack) Snapshot() int64 {
-	return su.g.Snapshot()
+func (s *Stack) Snapshot() int64 {
+	return s.g.Snapshot()
 }
 
 // Goroutine collects the number of existing goroutines.
