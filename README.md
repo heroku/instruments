@@ -53,7 +53,7 @@ You can create custom instruments or compose new instruments form the built-in i
 Registry enforce the Discrete and Sample interfaces, creating a custom Reporter should be trivial, for example:
 
 ```go
-for k, m := range r.Instruments() {
+for k, m := range registry.Instruments() {
   switch i := m.(type) {
   case instruments.Discrete:
     s := i.Snapshot()

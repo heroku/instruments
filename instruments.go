@@ -35,7 +35,7 @@
 // Registry enforce the Discrete and Sample interfaces,
 // creating a custom Reporter should be trivial, for example:
 //
-// 	for k, m := range r.Instruments() {
+// 	for k, m := range registry.Instruments() {
 // 	 	switch i := m.(type) {
 // 	 	case instruments.Discrete:
 // 	 	 	s := i.Snapshot()
