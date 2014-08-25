@@ -5,7 +5,7 @@
 //
 // 	timer := instruments.NewTimer(-1)
 //
-//	registry := instruments.NewRegistry()
+//	registry := reporter.NewRegistry()
 //	registry.Register("processing-time", timer)
 //
 //	go reporter.Log("process", registry, time.Minute)
