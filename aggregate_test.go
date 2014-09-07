@@ -1,6 +1,9 @@
 package instruments
 
-import "testing"
+import (
+	"testing"
+	"testing/quick"
+)
 
 var quantileTests = []struct {
 	values   []int64
@@ -77,5 +80,35 @@ func TestMinMax(t *testing.T) {
 		if max != mm.max {
 			t.Errorf("%d: expected max value %d got %d", i, mm.max, max)
 		}
+	}
+}
+
+func TestMin(t *testing.T) {
+	err := quick.Check(func(values []int64) bool {
+		min := Min(values)
+		for _, v := range values {
+			if v < min {
+				return false
+			}
+		}
+		return true
+	}, nil)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestMax(t *testing.T) {
+	err := quick.Check(func(values []int64) bool {
+		max := Max(values)
+		for _, v := range values {
+			if v > max {
+				return false
+			}
+		}
+		return true
+	}, nil)
+	if err != nil {
+		t.Error(err)
 	}
 }
