@@ -84,7 +84,7 @@ func TestMinMax(t *testing.T) {
 }
 
 func TestMin(t *testing.T) {
-	err := quick.Check(func(values []int64) bool {
+	min := func(values []int64) bool {
 		min := Min(values)
 		for _, v := range values {
 			if v < min {
@@ -92,14 +92,14 @@ func TestMin(t *testing.T) {
 			}
 		}
 		return true
-	}, nil)
-	if err != nil {
+	}
+	if err := quick.Check(min, nil); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestMax(t *testing.T) {
-	err := quick.Check(func(values []int64) bool {
+	max := func(values []int64) bool {
 		max := Max(values)
 		for _, v := range values {
 			if v > max {
@@ -107,8 +107,8 @@ func TestMax(t *testing.T) {
 			}
 		}
 		return true
-	}, nil)
-	if err != nil {
+	}
+	if err := quick.Check(max, nil); err != nil {
 		t.Error(err)
 	}
 }
