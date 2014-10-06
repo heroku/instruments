@@ -40,6 +40,14 @@ func TestCounter(t *testing.T) {
 	}
 }
 
+func ExampleCounter() {
+	counter := NewCounter()
+	counter.Update(20)
+	counter.Update(25)
+	s := counter.Snapshot()
+	fmt.Println(s)
+}
+
 func expectedRate(total int64, r *Rate, t *testing.T) {
 	x := calculateRate(total, r.time)
 	v := calculateRate(r.count.count, r.time)

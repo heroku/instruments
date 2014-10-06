@@ -19,6 +19,8 @@
 //
 // Theses base instruments are available:
 //
+// - Counter: holds a counter that can be incremented or decremented.
+//
 // - Rate: tracks the rate of values per seconds.
 //
 // - Reservoir: randomly samples values.
