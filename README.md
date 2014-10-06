@@ -40,6 +40,7 @@ Instruments support two types of instruments: Discrete instruments return a sing
 
 These base instruments are available:
 
+- Counter: a simple counter.
 - Rate: tracks the rate of values per seconds.
 - Reservoir: randomly samples values.
 - Derive: tracks the rate of values based on the delta with previous value.
