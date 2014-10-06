@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"testing/quick"
 	"time"
 )
 
@@ -17,9 +18,31 @@ func tolerance(value, control, tolerance int64) bool {
 	return true
 }
 
+func count(values []int64) int64 {
+	c := NewCounter()
+	for _, v := range values {
+		c.Update(v)
+	}
+	return c.Snapshot()
+}
+
+func reference(values []int64) (total int64) {
+	for _, v := range values {
+		total += v
+	}
+	return total
+}
+
+func TestCounter(t *testing.T) {
+	// Yes, this is really close to testing golang "sync/atomic" package.
+	if err := quick.CheckEqual(count, reference, nil); err != nil {
+		t.Error(err)
+	}
+}
+
 func expectedRate(total int64, r *Rate, t *testing.T) {
 	x := calculateRate(total, r.time)
-	v := calculateRate(r.count, r.time)
+	v := calculateRate(r.count.count, r.time)
 	if !tolerance(v, x, x/20) {
 		t.Error("invalid rate")
 	}
@@ -158,6 +181,15 @@ func ExampleTimer_Time() {
 	})
 	s := timer.Snapshot()
 	fmt.Println(Quantile(s, 0.99))
+}
+
+func BenchmarkCounter(b *testing.B) {
+	c := NewCounter()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c.Update(int64(i))
+		c.Snapshot()
+	}
 }
 
 func BenchmarkRate(b *testing.B) {

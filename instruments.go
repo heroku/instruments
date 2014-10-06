@@ -72,11 +72,31 @@ func Scale(o, d time.Duration) float64 {
 	return float64(o) / float64(d)
 }
 
+// Counter holds a counter that can be incremented or decremented.
+type Counter struct {
+	count int64
+}
+
+// NewCounter creates a new counter instrument.
+func NewCounter() *Counter {
+	return new(Counter)
+}
+
+// Update adds v to the counter.
+func (c *Counter) Update(v int64) {
+	atomic.AddInt64(&c.count, v)
+}
+
+// Snapshot returns the current value and reset the counter.
+func (c *Counter) Snapshot() int64 {
+	return atomic.SwapInt64(&c.count, 0)
+}
+
 // Rate tracks the rate of values per second.
 type Rate struct {
-	count int64
 	time  int64
 	unit  time.Duration
+	count *Counter
 }
 
 // NewRate creates a new rate instrument.
@@ -87,14 +107,15 @@ func NewRate() *Rate {
 // NewRateScale creates a new rate instruments with the given unit.
 func NewRateScale(d time.Duration) *Rate {
 	return &Rate{
-		time: time.Now().UnixNano(),
-		unit: d,
+		time:  time.Now().UnixNano(),
+		unit:  d,
+		count: NewCounter(),
 	}
 }
 
 // Update updates rate value.
 func (r *Rate) Update(v int64) {
-	atomic.AddInt64(&r.count, v)
+	r.count.Update(v)
 }
 
 // Snapshot returns the number of values per second since the last snapshot,
@@ -102,7 +123,7 @@ func (r *Rate) Update(v int64) {
 func (r *Rate) Snapshot() int64 {
 	now := time.Now().UnixNano()
 	t := atomic.SwapInt64(&r.time, now)
-	c := atomic.SwapInt64(&r.count, 0)
+	c := r.count.Snapshot()
 	s := float64(c) / rateScale / float64(now-t)
 	return Ceil(s * Scale(r.unit, time.Second))
 }
