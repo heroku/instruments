@@ -68,5 +68,6 @@ for k, m := range registry.Instruments() {
 
 ## See also
 
+* [Instrumentation by Composition](https://engineering.heroku.com/blogs/2014-10-23-instrumentation-by-composition)
 * [Go Metrics](https://github.com/rcrowley/go-metrics)
 * [Interval metrics](https://github.com/aphyr/interval-metrics)
