@@ -76,3 +76,14 @@ func TestSnapshotInstruments(t *testing.T) {
 		t.Error("instrument not snapshoted")
 	}
 }
+
+func BenchmarkSnapshot(b *testing.B) {
+	r := NewRegistry()
+	for i := 0; i < 200000; i++ {
+		r.Register("foo", instruments.NewRate())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r.Snapshot()
+	}
+}

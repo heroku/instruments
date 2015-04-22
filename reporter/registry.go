@@ -9,7 +9,7 @@ import (
 // Registry is a registry of all instruments.
 type Registry struct {
 	instruments map[string]interface{}
-	m           sync.Mutex
+	m           sync.RWMutex
 }
 
 // NewRegistry creates a new Register.
@@ -21,8 +21,8 @@ func NewRegistry() *Registry {
 
 // Get returns an instrument from the Registry.
 func (r *Registry) Get(name string) interface{} {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.m.RLock()
+	defer r.m.RUnlock()
 	return r.instruments[name]
 }
 
@@ -51,8 +51,8 @@ func (r *Registry) Unregister(name string) {
 
 // Snapshot returns and reset all instruments.
 func (r *Registry) Snapshot() map[string]interface{} {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.m.RLock()
+	defer r.m.RUnlock()
 	instruments := make(map[string]interface{}, len(r.instruments))
 	for k, i := range r.instruments {
 		instruments[k] = i
@@ -63,8 +63,8 @@ func (r *Registry) Snapshot() map[string]interface{} {
 
 // Instruments returns all instruments.
 func (r *Registry) Instruments() map[string]interface{} {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.m.RLock()
+	defer r.m.RUnlock()
 	instruments := make(map[string]interface{}, len(r.instruments))
 	for k, i := range r.instruments {
 		instruments[k] = i
@@ -74,7 +74,7 @@ func (r *Registry) Instruments() map[string]interface{} {
 
 // Size returns the numbers of instruments in the registry.
 func (r *Registry) Size() int {
-	r.m.Lock()
-	defer r.m.Unlock()
+	r.m.RLock()
+	defer r.m.RUnlock()
 	return len(r.instruments)
 }
