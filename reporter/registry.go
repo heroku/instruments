@@ -6,6 +6,29 @@ import (
 	"github.com/heroku/instruments"
 )
 
+// DefaultRegistry is the default registry.
+var DefaultRegistry = NewRegistry()
+
+// Register a new instruments in the default registry.
+func Register(name string, v interface{}) interface{} {
+	return DefaultRegistry.Register(name, v)
+}
+
+// Get returns the named instruments from the default registry.
+func Get(name string) interface{} {
+	return DefaultRegistry.Get(name)
+}
+
+// Unregister remove the named instruments from the default registry.
+func Unregister(name string) {
+	DefaultRegistry.Unregister(name)
+}
+
+// Snapshot returns all instruments and reset the default registry.
+func Snapshot() map[string]interface{} {
+	return DefaultRegistry.Snapshot()
+}
+
 // Registry is a registry of all instruments.
 type Registry struct {
 	instruments map[string]interface{}
