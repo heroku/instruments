@@ -1,4 +1,4 @@
-// Instruments allows you to collects metrics over discrete time intervals.
+// Package instruments allows you to collects metrics over discrete time intervals.
 //
 // Collected metrics will only reflect observations from last time window only,
 // rather than including observations from prior windows, contrary to EWMA based metrics.
@@ -260,6 +260,11 @@ func (t *Timer) Update(d time.Duration) {
 // Snapshot returns durations sample as a sorted array.
 func (t *Timer) Snapshot() []int64 {
 	return t.r.Snapshot()
+}
+
+// Since records duration since the given start time.
+func (t *Timer) Since(start time.Time) {
+	t.Update(time.Since(start))
 }
 
 // Time records given function execution time.

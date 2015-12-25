@@ -177,7 +177,7 @@ func ExampleTimer() {
 	timer := NewTimer(-1)
 	ts := time.Now()
 	time.Sleep(10 * time.Second)
-	timer.Update(time.Since(ts))
+	timer.Since(ts)
 	s := timer.Snapshot()
 	fmt.Println(Quantile(s, 0.99))
 }
