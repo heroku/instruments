@@ -99,7 +99,6 @@ type Rate struct {
 	time  int64
 	unit  time.Duration
 	count *Counter
-	m     sync.Mutex
 }
 
 // NewRate creates a new rate instrument.
@@ -124,8 +123,6 @@ func (r *Rate) Update(v int64) {
 // Snapshot returns the number of values per second since the last snapshot,
 // and reset the count to zero.
 func (r *Rate) Snapshot() int64 {
-	r.m.Lock()
-	defer r.m.Unlock()
 	now := time.Now().UnixNano()
 	t := atomic.SwapInt64(&r.time, now)
 	c := r.count.Snapshot()
