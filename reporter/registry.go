@@ -40,6 +40,31 @@ func (s MetricID) Tags() []string {
 
 // --------------------------------------------------------------------
 
+var instrumentsMapPool sync.Pool
+
+// InstrumentsMap is a named map of instruments returned
+// by Registry.Reset()
+type InstrumentsMap map[MetricID]interface{}
+
+func newInstrumentsMap(size int) InstrumentsMap {
+	if v := instrumentsMapPool.Get(); v != nil {
+		return v.(InstrumentsMap)
+	}
+	return make(InstrumentsMap, size)
+}
+
+// Release can be called to release the resources of an
+// InstrumentsMap and allow the system to recycle the memory.
+// DO NOT use the map after calling this function!
+func (m InstrumentsMap) Release() {
+	for k := range m {
+		delete(m, k)
+	}
+	instrumentsMapPool.Put(m)
+}
+
+// --------------------------------------------------------------------
+
 // DefaultRegistry is the default registry.
 var DefaultRegistry = NewRegistry()
 
@@ -58,23 +83,23 @@ func Unregister(name string, tags []string) {
 	DefaultRegistry.Unregister(name, tags)
 }
 
-// Snapshot returns all instruments and reset the default registry.
-func Snapshot() map[MetricID]interface{} {
-	return DefaultRegistry.Snapshot()
+// Reset resets the default registry and returns all instruments.
+func Reset() InstrumentsMap {
+	return DefaultRegistry.Reset()
 }
 
 // --------------------------------------------------------------------
 
 // Registry is a registry of all instruments.
 type Registry struct {
-	instruments map[MetricID]interface{}
+	instruments InstrumentsMap
 	m           sync.RWMutex
 }
 
 // NewRegistry creates a new Register.
 func NewRegistry() *Registry {
 	return &Registry{
-		instruments: make(map[MetricID]interface{}),
+		instruments: newInstrumentsMap(0),
 	}
 }
 
@@ -106,19 +131,19 @@ func (r *Registry) Unregister(name string, tags []string) {
 	r.m.Unlock()
 }
 
-// Snapshot returns and reset all instruments.
-func (r *Registry) Snapshot() map[MetricID]interface{} {
+// Reset resets and returns all instruments.
+func (r *Registry) Reset() InstrumentsMap {
 	r.m.Lock()
 	instruments := r.instruments
-	r.instruments = make(map[MetricID]interface{})
+	r.instruments = newInstrumentsMap(0)
 	r.m.Unlock()
 	return instruments
 }
 
 // Instruments returns all named instruments without resetting them.
-func (r *Registry) Instruments() map[MetricID]interface{} {
+func (r *Registry) Instruments() InstrumentsMap {
 	r.m.RLock()
-	instruments := make(map[MetricID]interface{}, len(r.instruments))
+	instruments := newInstrumentsMap(len(r.instruments))
 	for k, i := range r.instruments {
 		instruments[k] = i
 	}

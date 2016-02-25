@@ -53,13 +53,13 @@ func TestGetInstrument(t *testing.T) {
 	}
 }
 
-func TestSnapshotInstruments(t *testing.T) {
+func TestResetInstruments(t *testing.T) {
 	r := NewRegistry()
 	r.Register("foo", nil, instruments.NewRate())
 	if r.Size() != 1 {
 		t.Error("instrument not registered")
 	}
-	if snapshot := r.Snapshot(); len(snapshot) != 1 {
+	if snapshot := r.Reset(); len(snapshot) != 1 {
 		t.Error("instrument not returned")
 	}
 	if r.Size() != 0 {

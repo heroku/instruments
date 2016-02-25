@@ -29,7 +29,7 @@ func BenchmarkInstruments(b *testing.B) {
 	}
 }
 
-func BenchmarkSnapshot(b *testing.B) {
+func BenchmarkReset(b *testing.B) {
 	n := 10000
 	s := reporter.NewRegistry()
 	for i := 0; i < n; i++ {
@@ -41,7 +41,7 @@ func BenchmarkSnapshot(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.SetInstruments(m)
-		if count := len(r.Snapshot()); count != n {
+		if count := len(r.Reset()); count != n {
 			b.Fatal("snapshot returned unexpected count:", count)
 		}
 	}
