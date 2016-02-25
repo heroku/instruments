@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/heroku/instruments"
@@ -80,10 +81,13 @@ func TestSnapshotInstruments(t *testing.T) {
 func BenchmarkSnapshot(b *testing.B) {
 	r := NewRegistry()
 	for i := 0; i < 200000; i++ {
-		r.Register("foo", instruments.NewRate())
+		r.Register(fmt.Sprintf("foo.%d", i), instruments.NewRate())
 	}
 	b.ResetTimer()
+
+	// calling with Instruments() instead of Snapshot() as
+	// it is non-destructive
 	for i := 0; i < b.N; i++ {
-		r.Snapshot()
+		r.Instruments()
 	}
 }
