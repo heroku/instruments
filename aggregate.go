@@ -1,60 +1,49 @@
 package instruments
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
-// Quantile returns the nearest value to the given quantile.
-func Quantile(v []int64, q float64) int64 {
-	n := len(v)
-	if n == 0 {
+// SampleSlice are returned by Sample.Snapshot. These are simple
+// int64 slices which extensions for simpler calculations:
+type SampleSlice []int64
+
+func (s SampleSlice) Len() int           { return len(s) }
+func (s SampleSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s SampleSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s SampleSlice) Sort()              { sort.Sort(s) }
+func (s SampleSlice) IsSorted() bool     { return sort.IsSorted(s) }
+
+// Min returns minimun value of the given sample.
+func (s SampleSlice) Min() int64 {
+	if len(s) == 0 {
 		return 0
 	}
-	m := Floor(float64(n) * q)
-	i := min(n-1, int(m))
-	return v[i]
+	if s.IsSorted() {
+		return s[0]
+	}
+	min := s[0]
+	for i := 1; i < len(s); i++ {
+		v := s[i]
+		if min > v {
+			min = v
+		}
+	}
+	return min
 }
 
-// Mean returns the mean of the given sample.
-func Mean(values []int64) float64 {
-	if len(values) == 0 {
-		return 0.0
-	}
-	var sum int64
-	for _, v := range values {
-		sum += v
-	}
-	return float64(sum) / float64(len(values))
-}
-
-// StandardDeviation returns standard deviation of the given sample.
-func StandardDeviation(v []int64) float64 {
-	return math.Sqrt(Variance(v))
-}
-
-// Variance returns variance if the given sample.
-func Variance(values []int64) float64 {
-	if len(values) == 0 {
-		return 0.0
-	}
-	m := Mean(values)
-	var sum float64
-	for _, v := range values {
-		d := float64(v) - m
-		sum += d * d
-	}
-	return float64(sum) / float64(len(values))
-}
-
-// Max returns maximun value of the given sample.
-func Max(values []int64) int64 {
-	if len(values) == 0 {
+// Max returns maximum value of the given sample.
+func (s SampleSlice) Max() int64 {
+	if len(s) == 0 {
 		return 0
 	}
-	if isSorted(values) {
-		return values[len(values)-1]
+	if s.IsSorted() {
+		return s[len(s)-1]
 	}
-	max := values[0]
-	for i := 1; i < len(values); i++ {
-		v := values[i]
+	max := s[0]
+	for i := 1; i < len(s); i++ {
+		v := s[i]
 		if max < v {
 			max = v
 		}
@@ -62,20 +51,44 @@ func Max(values []int64) int64 {
 	return max
 }
 
-// Min returns minimun value of the given sample.
-func Min(values []int64) int64 {
-	if len(values) == 0 {
+// Mean returns the mean of the given sample.
+func (s SampleSlice) Mean() float64 {
+	if len(s) == 0 {
+		return 0.0
+	}
+	var sum int64
+	for _, v := range s {
+		sum += v
+	}
+	return float64(sum) / float64(len(s))
+}
+
+// Quantile returns the nearest value to the given quantile.
+func (s SampleSlice) Quantile(q float64) int64 {
+	n := len(s)
+	if n == 0 {
 		return 0
 	}
-	if isSorted(values) {
-		return values[0]
+	m := Floor(float64(n) * q)
+	i := min(n-1, int(m))
+	return s[i]
+}
+
+// Variance returns variance if the given sample.
+func (s SampleSlice) Variance() float64 {
+	if len(s) == 0 {
+		return 0.0
 	}
-	min := values[0]
-	for i := 1; i < len(values); i++ {
-		v := values[i]
-		if min > v {
-			min = v
-		}
+	m := s.Mean()
+	var sum float64
+	for _, v := range s {
+		d := float64(v) - m
+		sum += d * d
 	}
-	return min
+	return float64(sum) / float64(len(s))
+}
+
+// StandardDeviation returns standard deviation of the given sample.
+func (s SampleSlice) StandardDeviation() float64 {
+	return math.Sqrt(s.Variance())
 }

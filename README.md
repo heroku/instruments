@@ -1,22 +1,31 @@
 # Instruments
 
 Instruments allows you to collects metrics over discrete time intervals.
+This a fork of the (original library)[https://github.com/heroku/instruments] which
+comes with several new additions - consider it a v2!
 
 Collected metrics will only reflect observations from last time window only,
 rather than including observations from prior windows, contrary to EWMA based metrics.
+
+The new features include:
+
+* Slighly faster
+* More convenient API
+* Support for tags
+
 
 ## Installation
 
 Download and install:
 
 ```
-$ go get github.com/heroku/instruments
+$ go get github.com/bsm/instruments
 ```
 
 Add it to your code:
 
 ```go
-import "github.com/heroku/instruments"
+import "github.com/bsm/instruments"
 ```
 
 ## Usage
@@ -57,11 +66,9 @@ Registry enforce the Discrete and Sample interfaces, creating a custom Reporter 
 for k, m := range registry.Instruments() {
   switch i := m.(type) {
   case instruments.Discrete:
-    s := i.Snapshot()
-    report(k, s)
+    report(k, i.Snapshot())
   case instruments.Sample:
-    s := instruments.Quantile(i.Snapshot(), 0.95)
-    report(k, s)
+    report(k, i.Snapshot().Quantile(0.95))
   }
 }
 ```

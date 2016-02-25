@@ -1,31 +1,6 @@
 package instruments
 
-import (
-	"math"
-	"sort"
-)
-
-type int64array []int64
-
-func (a int64array) Len() int {
-	return len(a)
-}
-
-func (a int64array) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
-func (a int64array) Less(i, j int) bool {
-	return a[i] < a[j]
-}
-
-func sorted(d int64array) {
-	sort.Sort(d)
-}
-
-func isSorted(d int64array) bool {
-	return sort.IsSorted(d)
-}
+import "math"
 
 func min(s, v int) int {
 	if s <= v {

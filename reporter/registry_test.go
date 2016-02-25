@@ -3,69 +3,54 @@ package reporter
 import (
 	"testing"
 
-	"github.com/heroku/instruments"
+	"github.com/bsm/instruments"
 )
-
-func BenchmarkRegistry(b *testing.B) {
-	r := NewRegistry()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Register("foo", instruments.NewRate())
-	}
-}
-
-func BenchmarkInstruments(b *testing.B) {
-	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Instruments()
-	}
-}
 
 func TestRegistration(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
+	r.Register("foo", []string{"a", "b"}, instruments.NewRate())
 	if registered := r.Instruments(); len(registered) != 1 {
 		t.Error("instrument not registered")
 	}
-	r.Unregister("foo")
+	r.Unregister("foo", []string{"b", "a"})
 	if registered := r.Instruments(); len(registered) != 0 {
 		t.Error("instrument not unregistered")
 	}
 }
 
-func TestGetOrRegisterInstrument(t *testing.T) {
+func TestNormalization(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
-	i := r.Register("foo", instruments.NewGauge(0))
-	if _, ok := i.(*instruments.Rate); !ok {
-		t.Fatal("wrong instrument type")
+	r.Register("foo", []string{"a", "b"}, instruments.NewRate())
+	r.Register("foo", []string{"b", "a"}, instruments.NewRate())
+	r.Register("bar", []string{}, instruments.NewRate())
+	r.Register("bar", nil, instruments.NewRate())
+	if registered := r.Instruments(); len(registered) != 2 {
+		t.Error("incorrect normalization")
 	}
-	registered := r.Instruments()
-	if len(registered) != 1 {
-		t.Fatal("registry should only have one instruments registered")
+
+	r.Unregister("foo", []string{"b", "a"})
+	r.Unregister("bar", []string{"a"})
+	if registered := r.Instruments(); len(registered) != 1 {
+		t.Error("incorrect normalization")
 	}
-	i, p := registered["foo"]
-	if !p {
-		t.Fatal("instrument not found")
-	}
-	if _, ok := i.(*instruments.Rate); !ok {
-		t.Fatal("wrong instrument type")
+
+	r.Unregister("bar", nil)
+	if registered := r.Instruments(); len(registered) != 0 {
+		t.Error("incorrect normalization")
 	}
 }
 
 func TestGetInstrument(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
-	if r := r.Get("foo"); r == nil {
+	r.Register("foo", nil, instruments.NewRate())
+	if r := r.Get("foo", nil); r == nil {
 		t.Error("instrument not returned")
 	}
 }
 
 func TestSnapshotInstruments(t *testing.T) {
 	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
+	r.Register("foo", nil, instruments.NewRate())
 	if r.Size() != 1 {
 		t.Error("instrument not registered")
 	}
@@ -74,16 +59,5 @@ func TestSnapshotInstruments(t *testing.T) {
 	}
 	if r.Size() != 0 {
 		t.Error("instrument not snapshoted")
-	}
-}
-
-func BenchmarkSnapshot(b *testing.B) {
-	r := NewRegistry()
-	for i := 0; i < 200000; i++ {
-		r.Register("foo", instruments.NewRate())
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Snapshot()
 	}
 }

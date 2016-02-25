@@ -1,12 +1,16 @@
 package instruments
 
 import (
-	"fmt"
+	"math/rand"
 	"reflect"
 	"testing"
 	"testing/quick"
 	"time"
 )
+
+func init() {
+	rand.Seed(5)
+}
 
 func tolerance(value, control, tolerance int64) bool {
 	if value > (control + tolerance) {
@@ -38,14 +42,6 @@ func TestCounter(t *testing.T) {
 	if err := quick.CheckEqual(count, reference, nil); err != nil {
 		t.Error(err)
 	}
-}
-
-func ExampleCounter() {
-	counter := NewCounter()
-	counter.Update(20)
-	counter.Update(25)
-	s := counter.Snapshot()
-	fmt.Println(s)
 }
 
 func expectedRate(total int64, r *Rate, t *testing.T) {
@@ -83,29 +79,21 @@ func TestRate(t *testing.T) {
 	}
 }
 
-func ExampleRate() {
-	rate := NewRate()
-	rate.Update(20)
-	rate.Update(25)
-	s := rate.Snapshot()
-	fmt.Println(s)
-}
-
 var reservoirTests = []struct {
 	updates  []int64
-	snapshot []int64
+	snapshot SampleSlice
 }{
 	{
 		updates:  []int64{1},
-		snapshot: []int64{1},
+		snapshot: SampleSlice{1},
 	},
 	{
 		updates:  []int64{1, -10, 23},
-		snapshot: []int64{-10, 1, 23},
+		snapshot: SampleSlice{-10, 1, 23},
 	},
 	{
 		updates:  []int64{1, -10, 23, 18},
-		snapshot: []int64{-10, 1, 18},
+		snapshot: SampleSlice{-10, 1, 18},
 	},
 }
 
@@ -122,15 +110,6 @@ func TestReservoir(t *testing.T) {
 	}
 }
 
-func ExampleReservoir() {
-	reservoir := NewReservoir(-1)
-	reservoir.Update(12)
-	reservoir.Update(54)
-	reservoir.Update(34)
-	s := reservoir.Snapshot()
-	fmt.Println(Quantile(s, 0.99))
-}
-
 func TestGauge(t *testing.T) {
 	g := NewGauge(1)
 	g.Update(2)
@@ -138,13 +117,6 @@ func TestGauge(t *testing.T) {
 	if s != 2 {
 		t.Error("gauge didn't store new value")
 	}
-}
-
-func ExampleGauge() {
-	gauge := NewGauge(34)
-	gauge.Update(35)
-	s := gauge.Snapshot()
-	fmt.Println(s)
 }
 
 func TestDerive(t *testing.T) {
@@ -156,64 +128,11 @@ func TestDerive(t *testing.T) {
 	}
 }
 
-func ExampleDerive() {
-	derive := NewDerive(34)
-	derive.Update(56)
-	derive.Update(78)
-	s := derive.Snapshot()
-	fmt.Println(s)
-}
-
 func TestTimer(t *testing.T) {
 	tm := NewTimer(-1)
 	tm.Time(func() { time.Sleep(50e6) })
 	s := tm.Snapshot()
 	if !tolerance(s[0], 50, 10) {
 		t.Error("timer data is out of range")
-	}
-}
-
-func ExampleTimer() {
-	timer := NewTimer(-1)
-	ts := time.Now()
-	time.Sleep(10 * time.Second)
-	timer.Since(ts)
-	s := timer.Snapshot()
-	fmt.Println(Quantile(s, 0.99))
-}
-
-func ExampleTimer_Time() {
-	timer := NewTimer(-1)
-	timer.Time(func() {
-		time.Sleep(10 * time.Second)
-	})
-	s := timer.Snapshot()
-	fmt.Println(Quantile(s, 0.99))
-}
-
-func BenchmarkCounter(b *testing.B) {
-	c := NewCounter()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		c.Update(int64(i))
-		c.Snapshot()
-	}
-}
-
-func BenchmarkRate(b *testing.B) {
-	r := NewRate()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Update(int64(i))
-		r.Snapshot()
-	}
-}
-
-func BenchmarkReservoir(b *testing.B) {
-	r := NewReservoir(-1)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Update(int64(i))
-		r.Snapshot()
 	}
 }

@@ -1,12 +1,8 @@
 package runtime
 
 import (
-	"fmt"
 	"runtime"
 	"testing"
-	"time"
-
-	"github.com/heroku/instruments"
 )
 
 func TestPauses(t *testing.T) {
@@ -39,16 +35,4 @@ func TestPauses(t *testing.T) {
 	if count := len(p.Snapshot()); count != 256 {
 		t.Fatalf("captured %d gc runs, expected 256", count)
 	}
-}
-
-func ExamplePauses() {
-	pauses := NewPauses(512)
-	go func() {
-		for {
-			pauses.Update()
-			time.Sleep(time.Minute)
-		}
-	}()
-	perc95 := instruments.Quantile(pauses.Snapshot(), 0.95)
-	fmt.Println(perc95)
 }

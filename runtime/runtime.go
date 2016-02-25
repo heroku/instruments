@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/heroku/instruments"
+	"github.com/bsm/instruments"
 )
 
 // Allocated collects the number of bytes allocated and still in use.
@@ -264,6 +264,6 @@ func (p *Pauses) Update() {
 }
 
 // Snapshot returns a sample of GC pauses times.
-func (p *Pauses) Snapshot() []int64 {
+func (p *Pauses) Snapshot() instruments.SampleSlice {
 	return p.r.Snapshot()
 }

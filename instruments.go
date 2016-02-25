@@ -66,7 +66,7 @@ type Discrete interface {
 
 // Sample represents a sample instrument.
 type Sample interface {
-	Snapshot() []int64
+	Snapshot() SampleSlice
 }
 
 // Scale returns a conversion factor from one unit to another.
@@ -99,7 +99,6 @@ type Rate struct {
 	time  int64
 	unit  time.Duration
 	count *Counter
-	m     sync.Mutex
 }
 
 // NewRate creates a new rate instrument.
@@ -124,8 +123,6 @@ func (r *Rate) Update(v int64) {
 // Snapshot returns the number of values per second since the last snapshot,
 // and reset the count to zero.
 func (r *Rate) Snapshot() int64 {
-	r.m.Lock()
-	defer r.m.Unlock()
 	now := time.Now().UnixNano()
 	t := atomic.SwapInt64(&r.time, now)
 	c := r.count.Snapshot()
@@ -169,8 +166,8 @@ func (d *Derive) Snapshot() int64 {
 
 // Reservoir tracks a sample of values.
 type Reservoir struct {
-	size   int64
-	values []int64
+	size   int
+	values SampleSlice
 	m      sync.Mutex
 }
 
@@ -183,7 +180,7 @@ func NewReservoir(size int64) *Reservoir {
 		size = defaultReservoirSize
 	}
 	return &Reservoir{
-		values: make([]int64, size),
+		values: make(SampleSlice, size),
 	}
 }
 
@@ -192,28 +189,30 @@ func NewReservoir(size int64) *Reservoir {
 func (r *Reservoir) Update(v int64) {
 	r.m.Lock()
 	defer r.m.Unlock()
-	s := atomic.AddInt64(&r.size, 1)
-	if int(s) <= len(r.values) {
+
+	r.size++
+	if s := r.size; s <= len(r.values) {
 		// Not full
 		r.values[s-1] = v
 	} else {
 		// Full
-		l := rand.Int63n(s)
-		if int(l) < len(r.values) {
+		if l := rand.Intn(s); l < len(r.values) {
 			r.values[l] = v
 		}
 	}
 }
 
 // Snapshot returns sample as a sorted array.
-func (r *Reservoir) Snapshot() []int64 {
+func (r *Reservoir) Snapshot() SampleSlice {
 	r.m.Lock()
-	defer r.m.Unlock()
-	s := atomic.SwapInt64(&r.size, 0)
-	v := make([]int64, min(int(s), len(r.values)))
+	s := r.size
+	v := make(SampleSlice, min(s, len(r.values)))
 	copy(v, r.values)
-	r.values = make([]int64, cap(r.values))
-	sorted(v)
+	r.values = make(SampleSlice, cap(r.values))
+	r.size = 0
+	r.m.Unlock()
+
+	v.Sort()
 	return v
 }
 
@@ -258,7 +257,7 @@ func (t *Timer) Update(d time.Duration) {
 }
 
 // Snapshot returns durations sample as a sorted array.
-func (t *Timer) Snapshot() []int64 {
+func (t *Timer) Snapshot() SampleSlice {
 	return t.r.Snapshot()
 }
 
