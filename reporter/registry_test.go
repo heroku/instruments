@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/heroku/instruments"
@@ -11,15 +12,6 @@ func BenchmarkRegistry(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Register("foo", instruments.NewRate())
-	}
-}
-
-func BenchmarkInstruments(b *testing.B) {
-	r := NewRegistry()
-	r.Register("foo", instruments.NewRate())
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		r.Instruments()
 	}
 }
 
@@ -77,13 +69,13 @@ func TestSnapshotInstruments(t *testing.T) {
 	}
 }
 
-func BenchmarkSnapshot(b *testing.B) {
+func BenchmarkInstruments(b *testing.B) {
 	r := NewRegistry()
 	for i := 0; i < 200000; i++ {
-		r.Register("foo", instruments.NewRate())
+		r.Register(fmt.Sprintf("foo.%d", i), instruments.NewRate())
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Snapshot()
+		r.Instruments()
 	}
 }

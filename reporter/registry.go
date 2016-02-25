@@ -76,10 +76,7 @@ func (r *Registry) Unregister(name string) {
 func (r *Registry) Snapshot() map[string]interface{} {
 	r.m.RLock()
 	defer r.m.RUnlock()
-	instruments := make(map[string]interface{}, len(r.instruments))
-	for k, i := range r.instruments {
-		instruments[k] = i
-	}
+	instruments := r.instruments
 	r.instruments = make(map[string]interface{})
 	return instruments
 }
@@ -88,10 +85,7 @@ func (r *Registry) Snapshot() map[string]interface{} {
 func (r *Registry) Instruments() map[string]interface{} {
 	r.m.RLock()
 	defer r.m.RUnlock()
-	instruments := make(map[string]interface{}, len(r.instruments))
-	for k, i := range r.instruments {
-		instruments[k] = i
-	}
+	instruments := r.instruments
 	return instruments
 }
 
