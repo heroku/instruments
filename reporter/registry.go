@@ -109,10 +109,7 @@ func (r *Registry) Unregister(name string, tags []string) {
 // Snapshot returns and reset all instruments.
 func (r *Registry) Snapshot() map[MetricID]interface{} {
 	r.m.Lock()
-	instruments := make(map[MetricID]interface{})
-	for k, i := range r.instruments {
-		instruments[k] = i
-	}
+	instruments := r.instruments
 	r.instruments = make(map[MetricID]interface{})
 	r.m.Unlock()
 	return instruments

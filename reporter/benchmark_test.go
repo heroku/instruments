@@ -17,8 +17,12 @@ func BenchmarkRegistry(b *testing.B) {
 }
 
 func BenchmarkInstruments(b *testing.B) {
+	n := 10000
 	r := reporter.NewRegistry()
-	r.Register("foo", nil, instruments.NewRate())
+	for i := 0; i < n; i++ {
+		r.Register(fmt.Sprintf("foo.%d", i), nil, instruments.NewRate())
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Instruments()
@@ -26,14 +30,19 @@ func BenchmarkInstruments(b *testing.B) {
 }
 
 func BenchmarkSnapshot(b *testing.B) {
-	n := 100000
-	r := reporter.NewRegistry()
+	n := 10000
+	s := reporter.NewRegistry()
 	for i := 0; i < n; i++ {
-		r.Register(fmt.Sprintf("foo.%d", i), nil, instruments.NewRate())
+		s.Register(fmt.Sprintf("foo.%d", i), nil, instruments.NewRate())
 	}
-	b.ResetTimer()
+	m := s.Instruments()
+	r := reporter.NewRegistry()
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Instruments()
+		r.SetInstruments(m)
+		if count := len(r.Snapshot()); count != n {
+			b.Fatal("snapshot returned unexpected count:", count)
+		}
 	}
 }

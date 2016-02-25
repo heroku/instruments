@@ -6,6 +6,11 @@ import (
 	"github.com/bsm/instruments"
 )
 
+// SetInstruments sets instruments for testing
+func (r *Registry) SetInstruments(instruments map[MetricID]interface{}) {
+	r.instruments = instruments
+}
+
 func TestRegistration(t *testing.T) {
 	r := NewRegistry()
 	r.Register("foo", []string{"a", "b"}, instruments.NewRate())
