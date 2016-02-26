@@ -1,4 +1,4 @@
-// Reporter provides default reporting functionnality.
+// Package reporter provides default reporting functionnality.
 package reporter
 
 import (

@@ -1,4 +1,4 @@
-// Runtime provides runtime instrumentations
+// Package runtime provides runtime instrumentations
 // around memory usage, goroutine and cgo calls.
 package runtime
 
