@@ -51,7 +51,6 @@ func ExampleTimer() {
 	time.Sleep(10 * time.Millisecond)
 	timer.Since(ts)
 	fmt.Println(timer.Snapshot().Quantile(0.99))
-	// Output: 10
 }
 
 func ExampleTimer_Time() {
@@ -60,5 +59,4 @@ func ExampleTimer_Time() {
 		time.Sleep(10 * time.Millisecond)
 	})
 	fmt.Println(timer.Snapshot().Quantile(0.99))
-	// Output: 10
 }

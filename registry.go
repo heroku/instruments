@@ -82,6 +82,30 @@ func (r *Registry) Unregister(name string, tags []string) {
 	r.mutex.Unlock()
 }
 
+// Fetch returns an instrument from the Registry or creates a new one
+// using the provided factory.
+func (r *Registry) Fetch(name string, tags []string, factory func() interface{}) interface{} {
+	key := joinMetricID(name, tags)
+
+	r.mutex.RLock()
+	v, ok := r.instruments[key]
+	r.mutex.RUnlock()
+	if ok {
+		return v
+	}
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if v, ok = r.instruments[key]; !ok {
+		switch v = factory(); v.(type) {
+		case Discrete, Sample:
+			r.instruments[key] = v
+		}
+	}
+	return v
+}
+
 // Size returns the numbers of instruments in the registry.
 func (r *Registry) Size() int {
 	r.mutex.RLock()
@@ -147,7 +171,7 @@ func (r *Registry) loop(flushInterval time.Duration) {
 			// close errors channel
 			close(r.errors)
 
-			// consume any remaining errors in the channel
+			// flush unconsumed errors
 			go func() {
 				for _ = range r.errors {
 				}
@@ -159,12 +183,16 @@ func (r *Registry) loop(flushInterval time.Duration) {
 			return
 		case <-flusher.C:
 			if err := r.flush(); err != nil {
-				select {
-				case r.errors <- err:
-				default:
-				}
+				r.handleError(err)
 			}
 		}
+	}
+}
+
+func (r *Registry) handleError(err error) {
+	select {
+	case r.errors <- err:
+	default:
 	}
 }
 
