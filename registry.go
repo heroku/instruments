@@ -134,6 +134,12 @@ func (r *Registry) flush() error {
 	reporters := r.reporters
 	r.mutex.RUnlock()
 
+	for _, rep := range reporters {
+		if err := rep.Prep(); err != nil {
+			return err
+		}
+	}
+
 	for metricID, val := range r.reset() {
 		name, tags := splitMetricID(metricID)
 		name = r.prefix + name

@@ -18,6 +18,11 @@ func (r *Registry) Reset() int                                        { return l
 
 type mockReporter map[string]float64
 
+func (m mockReporter) Prep() error {
+	m["prep.called"] = 1
+	return nil
+}
+
 func (m mockReporter) Flush() error {
 	m["flush.called"] = 1
 	return nil
@@ -151,6 +156,7 @@ func TestRegistryFlush(t *testing.T) {
 		"myapp.foo|a,b,c":   20,
 		"myapp.bar|a,b,d,e": 5,
 		"flush.called":      1,
+		"prep.called":       1,
 	}
 	if !reflect.DeepEqual(rep, exp) {
 		t.Errorf("wants %v got %v", exp, rep)

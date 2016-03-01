@@ -27,6 +27,9 @@ func New(logger Logger) *Reporter {
 	return &Reporter{logger: logger}
 }
 
+// Prepare implements instruments.Reporter
+func (r *Reporter) Prep() error { return nil }
+
 // Discrete implements instruments.Reporter
 func (r *Reporter) Discrete(name string, tags []string, inst instruments.Discrete) error {
 	metric := fmt.Sprintf("%s|%s:val=%d", name, strings.Join(tags, ","), inst.Snapshot())
