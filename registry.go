@@ -43,6 +43,16 @@ func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 	return reg
 }
 
+// New creates a new Registry without a background flush thread.
+func NewUnstarted(prefix string, tags ...string) *Registry {
+	return &Registry{
+		instruments: newInstrumentsMap(0),
+		prefix:      prefix,
+		tags:        tags,
+		errors:      make(chan error, 10),
+	}
+}
+
 // Errors allows to subscribe to errors reported by the Registry.
 //
 func (r *Registry) Errors() <-chan error { return r.errors }
@@ -114,22 +124,10 @@ func (r *Registry) Size() int {
 	return size
 }
 
-// Close flushes all pending data to reporters
-// and releases resources.
-func (r *Registry) Close() error {
-	close(r.closing)
-	return <-r.closed
-}
-
-func (r *Registry) reset() instrumentsMap {
-	r.mutex.Lock()
-	instruments := r.instruments
-	r.instruments = newInstrumentsMap(0)
-	r.mutex.Unlock()
-	return instruments
-}
-
-func (r *Registry) flush() error {
+// Flush performs a manual flush to all subscribed reporters.
+// This method is usually called by a background thread
+// every flushInterval, specified in New()
+func (r *Registry) Flush() error {
 	r.mutex.RLock()
 	reporters := r.reporters
 	r.mutex.RUnlock()
@@ -167,6 +165,24 @@ func (r *Registry) flush() error {
 	return nil
 }
 
+// Close flushes all pending data to reporters
+// and releases resources.
+func (r *Registry) Close() error {
+	if r.closing == nil {
+		return nil
+	}
+	close(r.closing)
+	return <-r.closed
+}
+
+func (r *Registry) reset() instrumentsMap {
+	r.mutex.Lock()
+	instruments := r.instruments
+	r.instruments = newInstrumentsMap(0)
+	r.mutex.Unlock()
+	return instruments
+}
+
 func (r *Registry) loop(flushInterval time.Duration) {
 	flusher := time.NewTicker(flushInterval)
 	defer flusher.Stop()
@@ -184,11 +200,11 @@ func (r *Registry) loop(flushInterval time.Duration) {
 			}()
 
 			// flush again
-			r.closed <- r.flush()
+			r.closed <- r.Flush()
 			close(r.closed)
 			return
 		case <-flusher.C:
-			if err := r.flush(); err != nil {
+			if err := r.Flush(); err != nil {
 				r.handleError(err)
 			}
 		}

@@ -56,6 +56,13 @@ func TestRegistry(t *testing.T) {
 	}
 }
 
+func TestUnstartedRegistry(t *testing.T) {
+	r := NewUnstarted("")
+	if err := r.Close(); err != nil {
+		t.Error("unexpected error on close", err)
+	}
+}
+
 func TestRegistryNormalization(t *testing.T) {
 	r := New(time.Minute, "")
 	defer r.Close()
@@ -149,7 +156,7 @@ func TestRegistryFlush(t *testing.T) {
 	resv.Update(4)
 	resv.Update(8)
 
-	if err := reg.flush(); err != nil {
+	if err := reg.Flush(); err != nil {
 		t.Error("expected no error")
 	}
 	exp := mockReporter{
