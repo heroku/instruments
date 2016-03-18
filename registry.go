@@ -1,8 +1,6 @@
 package instruments
 
 import (
-	"sort"
-	"strings"
 	"sync"
 	"time"
 )
@@ -56,7 +54,7 @@ func (r *Registry) Subscribe(rep Reporter) {
 
 // Get returns an instrument from the Registry.
 func (r *Registry) Get(name string, tags []string) interface{} {
-	key := joinMetricID(name, tags)
+	key := MetricID(name, tags)
 	r.mutex.RLock()
 	v := r.instruments[key]
 	r.mutex.RUnlock()
@@ -67,7 +65,7 @@ func (r *Registry) Get(name string, tags []string) interface{} {
 func (r *Registry) Register(name string, tags []string, v interface{}) {
 	switch v.(type) {
 	case Discrete, Sample:
-		key := joinMetricID(name, tags)
+		key := MetricID(name, tags)
 		r.mutex.Lock()
 		r.instruments[key] = v
 		r.mutex.Unlock()
@@ -76,7 +74,7 @@ func (r *Registry) Register(name string, tags []string, v interface{}) {
 
 // Unregister remove from the registry the instrument matching the given name/tags
 func (r *Registry) Unregister(name string, tags []string) {
-	key := joinMetricID(name, tags)
+	key := MetricID(name, tags)
 	r.mutex.Lock()
 	delete(r.instruments, key)
 	r.mutex.Unlock()
@@ -85,7 +83,7 @@ func (r *Registry) Unregister(name string, tags []string) {
 // Fetch returns an instrument from the Registry or creates a new one
 // using the provided factory.
 func (r *Registry) Fetch(name string, tags []string, factory func() interface{}) interface{} {
-	key := joinMetricID(name, tags)
+	key := MetricID(name, tags)
 
 	r.mutex.RLock()
 	v, ok := r.instruments[key]
@@ -141,7 +139,7 @@ func (r *Registry) flush() error {
 	}
 
 	for metricID, val := range r.reset() {
-		name, tags := splitMetricID(metricID)
+		name, tags := SplitMetricID(metricID)
 		name = r.prefix + name
 		tags = append(r.tags, tags...)
 
@@ -200,27 +198,6 @@ func (r *Registry) handleError(err error) {
 	case r.errors <- err:
 	default:
 	}
-}
-
-// --------------------------------------------------------------------
-
-func joinMetricID(name string, tags []string) string {
-	if len(tags) == 0 {
-		return name
-	}
-	sort.Strings(tags)
-	return name + "|" + strings.Join(tags, ",")
-}
-
-func splitMetricID(metricID string) (string, []string) {
-	if metricID == "" {
-		return "", nil
-	}
-	parts := strings.SplitN(metricID, "|", 2)
-	if len(parts) != 2 || parts[1] == "" {
-		return parts[0], nil
-	}
-	return parts[0], strings.Split(parts[1], ",")
 }
 
 // --------------------------------------------------------------------
