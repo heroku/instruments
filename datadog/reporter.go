@@ -8,6 +8,8 @@ import (
 
 var _ instruments.Reporter = (*Reporter)(nil)
 
+var unixTime = func() int64 { return time.Now().Unix() }
+
 // Reporter implements instruments.Reporter and simply logs metrics
 type Reporter struct {
 	// Client is a customisable reporter client
@@ -15,44 +17,62 @@ type Reporter struct {
 
 	metrics   []*Metric
 	timestamp int64
+	refs      map[string]int8
 }
 
 // New creates a new reporter.
 func New(apiKey string) *Reporter {
 	return &Reporter{
 		Client: NewClient(apiKey),
+		refs:   make(map[string]int8),
 	}
 }
 
 // Prepare implements instruments.Reporter
 func (r *Reporter) Prep() error {
-	r.timestamp = time.Now().Unix()
+	r.timestamp = unixTime()
 	return nil
+}
+
+// Metric appends a new metric to the reporter. The value v must be either an
+// int64 or float64, otherwise an error is returned
+func (r *Reporter) Metric(name string, tags []string, v interface{}) {
+	switch v.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		r.metrics = append(r.metrics, BuildMetric(name, tags, r.timestamp, v))
+	}
 }
 
 // Discrete implements instruments.Reporter
 func (r *Reporter) Discrete(name string, tags []string, inst instruments.Discrete) error {
-	r.metrics = append(r.metrics,
-		BuildMetric(name, tags, r.timestamp, inst.Snapshot()),
-	)
+	metricID := instruments.MetricID(name, tags)
+	r.refs[metricID] = 2
+	r.Metric(name, tags, inst.Snapshot())
 	return nil
 }
 
 // Sample implements instruments.Reporter
 func (r *Reporter) Sample(name string, tags []string, inst instruments.Sample) error {
 	s := inst.Snapshot()
-	r.metrics = append(r.metrics,
-		BuildMetric(name+".p95", tags, r.timestamp, s.Quantile(0.95)),
-		BuildMetric(name+".p99", tags, r.timestamp, s.Quantile(0.99)),
-	)
+	r.Metric(name+".p95", tags, s.Quantile(0.95))
+	r.Metric(name+".p99", tags, s.Quantile(0.99))
 	return nil
 }
 
 // Flush implements instruments.Reporter
 func (r *Reporter) Flush() error {
-	if err := r.Client.Post(r.metrics); err != nil {
-		return err
+	for metricID := range r.refs {
+		if r.refs[metricID]--; r.refs[metricID] < 1 {
+			name, tags := instruments.SplitMetricID(metricID)
+			r.Metric(name, tags, 0)
+			delete(r.refs, metricID)
+		}
 	}
-	r.metrics = r.metrics[:0]
+	if len(r.metrics) != 0 {
+		if err := r.Client.Post(r.metrics); err != nil {
+			return err
+		}
+		r.metrics = r.metrics[:0]
+	}
 	return nil
 }

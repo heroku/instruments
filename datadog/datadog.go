@@ -50,7 +50,7 @@ func (c *Client) Post(metrics []*Metric) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 && resp.StatusCode != 202 {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("datadog: bad API response: %s", resp.Status)
 	}
 	return nil
