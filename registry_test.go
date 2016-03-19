@@ -1,9 +1,7 @@
 package instruments
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -16,27 +14,46 @@ func (r *Registry) Reset() int                                        { return l
 
 // Mock reporter
 
-type mockReporter map[string]float64
+type mockReported struct {
+	Name  string
+	Tags  []string
+	Value float64
+}
 
-func (m mockReporter) Prep() error {
-	m["prep.called"] = 1
+type mockReporter struct {
+	Data    []mockReported
+	Prepped bool
+	Flushed map[string]float64
+}
+
+func (m *mockReporter) Prep() error {
+	m.Prepped = true
 	return nil
 }
 
-func (m mockReporter) Flush() error {
-	m["flush.called"] = 1
+func (m *mockReporter) Flush() error {
+	m.Flushed = make(map[string]float64, len(m.Data))
+	for _, i := range m.Data {
+		m.Flushed[MetricID(i.Name, i.Tags)] = i.Value
+	}
 	return nil
 }
 
-func (m mockReporter) Discrete(name string, tags []string, inst Discrete) error {
-	key := fmt.Sprintf("%s|%s", name, strings.Join(tags, ","))
-	m[key] = float64(inst.Snapshot())
+func (m *mockReporter) Discrete(name string, tags []string, inst Discrete) error {
+	m.Data = append(m.Data, mockReported{
+		Name:  name,
+		Tags:  tags,
+		Value: float64(inst.Snapshot()),
+	})
 	return nil
 }
 
-func (m mockReporter) Sample(name string, tags []string, inst Sample) error {
-	key := fmt.Sprintf("%s|%s", name, strings.Join(tags, ","))
-	m[key] = inst.Snapshot().Mean()
+func (m *mockReporter) Sample(name string, tags []string, inst Sample) error {
+	m.Data = append(m.Data, mockReported{
+		Name:  name,
+		Tags:  tags,
+		Value: inst.Snapshot().Mean(),
+	})
 	return nil
 }
 
@@ -134,20 +151,30 @@ func TestRegistryFetch(t *testing.T) {
 	} else if ir != 1 {
 		t.Error("expected NewRate not to have been called again")
 	}
+
+	if _, ok := r.Fetch("foo", []string{"c"}, nr).(*Rate); !ok {
+		t.Error("unexpected instrument, expected rate")
+	} else if ir != 2 {
+		t.Error("expected NewRate to have been called")
+	}
 }
 
 func TestRegistryFlush(t *testing.T) {
-	rep := make(mockReporter)
+	rep := new(mockReporter)
 	reg := New(time.Minute, "myapp.", "a", "b")
 	reg.Subscribe(rep)
 	defer reg.Close()
 
-	cntr := NewCounter()
-	reg.Register("foo", []string{"c"}, cntr)
-	cntr.Update(2)
-	cntr.Update(6)
-	cntr.Update(4)
-	cntr.Update(8)
+	cnt1 := NewCounter()
+	reg.Register("foo", []string{"c"}, cnt1)
+	cnt1.Update(2)
+	cnt1.Update(6)
+	cnt1.Update(4)
+	cnt1.Update(8)
+
+	cnt2 := NewCounter()
+	reg.Register("foo", []string{"d"}, cnt2)
+	cnt2.Update(7)
 
 	resv := NewReservoir(4)
 	reg.Register("bar", []string{"d", "e"}, resv)
@@ -159,14 +186,15 @@ func TestRegistryFlush(t *testing.T) {
 	if err := reg.Flush(); err != nil {
 		t.Error("expected no error")
 	}
-	exp := mockReporter{
-		"myapp.foo|a,b,c":   20,
-		"myapp.bar|a,b,d,e": 5,
-		"flush.called":      1,
-		"prep.called":       1,
+	if !rep.Prepped {
+		t.Errorf("expected reported to be prepped")
 	}
-	if !reflect.DeepEqual(rep, exp) {
-		t.Errorf("wants %v got %v", exp, rep)
+	if exp := map[string]float64{
+		"myapp.foo|a,b,c":   20,
+		"myapp.foo|a,b,d":   7,
+		"myapp.bar|a,b,d,e": 5,
+	}; !reflect.DeepEqual(rep.Flushed, exp) {
+		t.Errorf("want:\n%v\ngot:\n%v", exp, rep.Flushed)
 	}
 }
 

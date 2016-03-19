@@ -139,7 +139,7 @@ func (r *Registry) Flush() error {
 	for metricID, val := range r.reset() {
 		name, tags := SplitMetricID(metricID)
 		name = r.prefix + name
-		tags = append(r.tags, tags...)
+		tags = append(tags, r.tags...)
 
 		for _, rep := range reporters {
 			var err error

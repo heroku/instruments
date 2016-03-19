@@ -11,9 +11,10 @@ import (
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
 func (r *Registry) Counter(name string, tags []string) *Counter {
-	factory := func() interface{} { return NewCounter() }
-	return r.fetchCounter(name, tags, factory)
+	return r.fetchCounter(name, tags, newCounter)
 }
+
+func newCounter() interface{} { return NewCounter() }
 
 // Rate fetches an instrument from the registry or creates a new one.
 //
@@ -21,9 +22,10 @@ func (r *Registry) Counter(name string, tags []string) *Counter {
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
 func (r *Registry) Rate(name string, tags []string) *Rate {
-	factory := func() interface{} { return NewRate() }
-	return r.fetchRate(name, tags, factory)
+	return r.fetchRate(name, tags, newRate)
 }
+
+func newRate() interface{} { return NewRate() }
 
 // RateScale fetches an instrument from the registry or creates a new one
 // with a custom scale.
