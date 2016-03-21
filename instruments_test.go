@@ -59,20 +59,20 @@ func calculateRate(c, t int64) int64 {
 
 func TestRate(t *testing.T) {
 	r := NewRate()
+	t0 := time.Now()
 	n := 10000
 	total := int64((n * (n + 1)) / 2)
-	t0 := time.Now().UnixNano()
 	for i := 0; i < n; i++ {
 		r.Update(int64(i))
 	}
 	expectedRate(total, r, t)
 	time.Sleep(10 * time.Millisecond)
 	expectedRate(total, r, t)
-	s := r.Snapshot()
-	t1 := time.Now().UnixNano()
-	m := Ceil(float64(total) / (float64(t1-t0) * rateScale))
-	if !tolerance(s, m, m/500) {
-		t.Errorf("snapshot should be the mean, wants %d, got %d", s, m)
+
+	s, d := r.Snapshot(), time.Since(t0)
+	m := Ceil(float64(total) / (float64(d) * rateScale))
+	if pm := m / 500; !tolerance(s, m, pm) {
+		t.Errorf("snapshot should be the mean, wants %d, got %d (Δ%d ±%d)", s, m, s-m, pm)
 	}
 	if r.Snapshot() != 0 {
 		t.Error("rate should be zero")
