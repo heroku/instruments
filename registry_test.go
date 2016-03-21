@@ -162,22 +162,23 @@ func TestRegistryFetch(t *testing.T) {
 func TestRegistryFlush(t *testing.T) {
 	rep := new(mockReporter)
 	reg := New(time.Minute, "myapp.", "a", "b")
+	reg.tags = append(reg.tags, "x")[:2] // force-extend tags cap
 	reg.Subscribe(rep)
 	defer reg.Close()
 
 	cnt1 := NewCounter()
-	reg.Register("foo", []string{"c"}, cnt1)
+	reg.Register("foo", []string{"c", "d"}, cnt1)
 	cnt1.Update(2)
 	cnt1.Update(6)
 	cnt1.Update(4)
 	cnt1.Update(8)
 
 	cnt2 := NewCounter()
-	reg.Register("foo", []string{"d"}, cnt2)
+	reg.Register("foo", []string{"e"}, cnt2)
 	cnt2.Update(7)
 
 	resv := NewReservoir(4)
-	reg.Register("bar", []string{"d", "e"}, resv)
+	reg.Register("bar", []string{"f", "g"}, resv)
 	resv.Update(2)
 	resv.Update(6)
 	resv.Update(4)
@@ -190,9 +191,9 @@ func TestRegistryFlush(t *testing.T) {
 		t.Errorf("expected reported to be prepped")
 	}
 	if exp := map[string]float64{
-		"myapp.foo|a,b,c":   20,
-		"myapp.foo|a,b,d":   7,
-		"myapp.bar|a,b,d,e": 5,
+		"myapp.foo|a,b,c,d": 20,
+		"myapp.foo|a,b,e":   7,
+		"myapp.bar|a,b,f,g": 5,
 	}; !reflect.DeepEqual(rep.Flushed, exp) {
 		t.Errorf("want:\n%v\ngot:\n%v", exp, rep.Flushed)
 	}

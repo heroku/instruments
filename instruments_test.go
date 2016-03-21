@@ -71,7 +71,7 @@ func TestRate(t *testing.T) {
 	s := r.Snapshot()
 	t1 := time.Now().UnixNano()
 	m := Ceil(float64(total) / (float64(t1-t0) * rateScale))
-	if !tolerance(s, m, m/1000) {
+	if !tolerance(s, m, m/500) {
 		t.Errorf("snapshot should be the mean, wants %d, got %d", s, m)
 	}
 	if r.Snapshot() != 0 {
