@@ -111,7 +111,7 @@ func TestReservoir(t *testing.T) {
 }
 
 func TestGauge(t *testing.T) {
-	g := NewGauge(1)
+	g := NewGauge()
 	g.Update(2)
 	s := g.Snapshot()
 	if s != 2 {

@@ -74,10 +74,11 @@ func (r *Registry) Reservoir(name string, tags []string, size int64) *Reservoir 
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Gauge(name string, tags []string, size int64) *Gauge {
-	factory := func() interface{} { return NewGauge(size) }
-	return r.fetchGauge(name, tags, factory)
+func (r *Registry) Gauge(name string, tags []string) *Gauge {
+	return r.fetchGauge(name, tags, newGauge)
 }
+
+func newGauge() interface{} { return NewGauge() }
 
 // Timer fetches an instrument from the registry or creates a new one.
 //

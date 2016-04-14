@@ -212,11 +212,9 @@ type Gauge struct {
 	value int64
 }
 
-// NewGauge creates a new Gauge with the given value.
-func NewGauge(v int64) *Gauge {
-	return &Gauge{
-		value: v,
-	}
+// NewGauge creates a new Gauge
+func NewGauge() *Gauge {
+	return new(Gauge)
 }
 
 // Update updates the current stored value.

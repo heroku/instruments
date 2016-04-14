@@ -32,7 +32,7 @@ func ExampleReservoir() {
 }
 
 func ExampleGauge() {
-	gauge := instruments.NewGauge(34)
+	gauge := instruments.NewGauge()
 	gauge.Update(35)
 	fmt.Println(gauge.Snapshot())
 	// Output: 35
