@@ -3,8 +3,5 @@ sudo: false
 go:
   - 1.6
   - 1.5
-before_script:
-  - go get golang.org/x/tools/cmd/vet
-  - go get golang.org/x/tools/cmd/cover
 notifications:
   email: false

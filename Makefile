@@ -1,4 +1,4 @@
-default: test
+default: vet test
 
 test:
 	go test ./... -race
