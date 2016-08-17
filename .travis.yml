@@ -1,7 +1,10 @@
 language: go
 sudo: false
 go:
+  - 1.7
   - 1.6
   - 1.5
 notifications:
   email: false
+script:
+  - make default test-race

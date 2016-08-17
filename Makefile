@@ -1,6 +1,9 @@
 default: vet test
 
 test:
+	go test ./...
+
+test-race:
 	go test ./... -race
 
 vet:
