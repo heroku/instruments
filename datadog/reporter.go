@@ -1,6 +1,7 @@
 package datadog
 
 import (
+	"os"
 	"time"
 
 	"github.com/bsm/instruments"
@@ -15,16 +16,23 @@ type Reporter struct {
 	// Client is a customisable reporter client
 	Client *Client
 
-	metrics   []*Metric
+	// Hostname can be customised.
+	// Default: set via os.Hostname()
+	Hostname string
+
+	metrics   []Metric
 	timestamp int64
 	refs      map[string]int8
 }
 
 // New creates a new reporter.
 func New(apiKey string) *Reporter {
+	hostname, _ := os.Hostname()
+
 	return &Reporter{
-		Client: NewClient(apiKey),
-		refs:   make(map[string]int8),
+		Client:   NewClient(apiKey),
+		Hostname: hostname,
+		refs:     make(map[string]int8),
 	}
 }
 
@@ -39,7 +47,12 @@ func (r *Reporter) Prep() error {
 func (r *Reporter) Metric(name string, tags []string, v interface{}) {
 	switch v.(type) {
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-		r.metrics = append(r.metrics, BuildMetric(name, tags, r.timestamp, v))
+		r.metrics = append(r.metrics, Metric{
+			Name:   name,
+			Points: [][2]interface{}{[2]interface{}{r.timestamp, v}},
+			Tags:   tags,
+			Host:   r.Hostname,
+		})
 	}
 }
 

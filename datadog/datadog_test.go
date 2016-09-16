@@ -26,9 +26,9 @@ func TestClient(t *testing.T) {
 
 	client := NewClient("TEST_API_TOKEN")
 	client.URL = server.URL
-	err := client.Post([]*Metric{
-		BuildMetric("m1", []string{"a", "b"}, 1414141414, 27),
-		BuildMetric("m2", []string{"c"}, 1414141415, 0.8),
+	err := client.Post([]Metric{
+		{Name: "m1", Points: [][2]interface{}{[2]interface{}{1414141414, 27}}, Tags: []string{"a", "b"}},
+		{Name: "m2", Points: [][2]interface{}{[2]interface{}{1414141415, 0.8}}, Tags: []string{"c"}},
 	})
 	if err != nil {
 		t.Fatal("unable to post metrics:", err)

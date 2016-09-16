@@ -27,9 +27,9 @@ func TestReporter(t *testing.T) {
 		assertNoError(t, rep.Discrete("cnt", []string{"b", "c"}, cnt))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"]},
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","c"]},
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["b","c"]}
+			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
+			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","c"],"host":"test.host"},
+			{"metric":"cnt","points":[[1414141414,0]],"tags":["b","c"],"host":"test.host"}
 		]}`)
 	})
 }
@@ -52,10 +52,10 @@ func TestReporter_Flush(t *testing.T) {
 		assertNoError(t, rep.Sample("tmr1", []string{"a"}, tmr1a))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"]},
-			{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"]},
-			{"metric":"tmr1.p95","points":[[1414141414,1000]],"tags":["a"]},
-			{"metric":"tmr1.p99","points":[[1414141414,1000]],"tags":["a"]}
+			{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
+			{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
+			{"metric":"tmr1.p95","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"},
+			{"metric":"tmr1.p99","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"}
 		]}`)
 
 		// Second flush
@@ -65,9 +65,9 @@ func TestReporter_Flush(t *testing.T) {
 		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, cnt2b))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"]},
-			{"metric":"cnt2","points":[[1414141414,5]],"tags":["b"]},
-			{"metric":"cnt2","points":[[1414141414,0]],"tags":["a"]}
+			{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
+			{"metric":"cnt2","points":[[1414141414,5]],"tags":["b"],"host":"test.host"},
+			{"metric":"cnt2","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
 		]}`)
 
 		// Third flush
@@ -76,15 +76,15 @@ func TestReporter_Flush(t *testing.T) {
 		assertNoError(t, rep.Prep())
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt2","points":[[1414141414,9]],"tags":["b"]},
-			{"metric":"cnt1","points":[[1414141414,0]],"tags":["a"]}
+			{"metric":"cnt2","points":[[1414141414,9]],"tags":["b"],"host":"test.host"},
+			{"metric":"cnt1","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
 		]}`)
 
 		// Final flush
 		assertNoError(t, rep.Prep())
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"]}
+			{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
 		]}`)
 	})
 }
@@ -105,6 +105,7 @@ func testReporter(cb func(*Reporter, *bytes.Buffer)) {
 
 	rep := New("BOGUS")
 	rep.Client.URL = server.URL
+	rep.Hostname = "test.host"
 	cb(rep, body)
 }
 
