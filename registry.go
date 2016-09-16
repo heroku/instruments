@@ -128,6 +128,7 @@ func (r *Registry) Size() int {
 func (r *Registry) Flush() error {
 	r.mutex.RLock()
 	reporters := r.reporters
+	rtags := r.tags
 	r.mutex.RUnlock()
 
 	for _, rep := range reporters {
@@ -139,7 +140,7 @@ func (r *Registry) Flush() error {
 	for metricID, val := range r.reset() {
 		name, tags := SplitMetricID(metricID)
 		name = r.prefix + name
-		tags = append(tags, r.tags...)
+		tags = append(tags, rtags...)
 
 		for _, rep := range reporters {
 			var err error
@@ -161,6 +162,28 @@ func (r *Registry) Flush() error {
 		}
 	}
 	return nil
+}
+
+// Tags returns global registry tags
+func (r *Registry) Tags() []string {
+	r.mutex.RLock()
+	tags := r.tags
+	r.mutex.RUnlock()
+	return tags
+}
+
+// SetTags allows to set tags
+func (r *Registry) SetTags(tags ...string) {
+	r.mutex.Lock()
+	r.tags = tags
+	r.mutex.Unlock()
+}
+
+// AddTags allows to add tags
+func (r *Registry) AddTags(tags ...string) {
+	r.mutex.Lock()
+	r.tags = append(r.tags, tags...)
+	r.mutex.Unlock()
 }
 
 // Close flushes all pending data to reporters
