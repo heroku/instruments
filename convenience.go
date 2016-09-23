@@ -64,7 +64,7 @@ func (r *Registry) DeriveScale(name string, tags []string, v int64, d time.Durat
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Reservoir(name string, tags []string, size int64) *Reservoir {
+func (r *Registry) Reservoir(name string, tags []string, size int) *Reservoir {
 	factory := func() interface{} { return NewReservoir(size) }
 	return r.fetchReservoir(name, tags, factory)
 }
@@ -85,7 +85,7 @@ func newGauge() interface{} { return NewGauge() }
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Timer(name string, tags []string, size int64) *Timer {
+func (r *Registry) Timer(name string, tags []string, size int) *Timer {
 	factory := func() interface{} { return NewTimer(size) }
 	return r.fetchTimer(name, tags, factory)
 }

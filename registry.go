@@ -142,17 +142,22 @@ func (r *Registry) Flush() error {
 		name = r.prefix + name
 		tags = append(tags, rtags...)
 
-		for _, rep := range reporters {
-			var err error
-			switch inst := val.(type) {
-			case Discrete:
-				err = rep.Discrete(name, tags, inst)
-			case Sample:
-				err = rep.Sample(name, tags, inst)
+		switch inst := val.(type) {
+		case Discrete:
+			val := inst.Snapshot()
+			for _, rep := range reporters {
+				if err := rep.Discrete(name, tags, val); err != nil {
+					return err
+				}
 			}
-			if err != nil {
-				return err
+		case Sample:
+			val := inst.Snapshot()
+			for _, rep := range reporters {
+				if err := rep.Sample(name, tags, val); err != nil {
+					return err
+				}
 			}
+			val.Release()
 		}
 	}
 

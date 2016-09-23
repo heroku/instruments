@@ -39,20 +39,20 @@ func (m *mockReporter) Flush() error {
 	return nil
 }
 
-func (m *mockReporter) Discrete(name string, tags []string, inst Discrete) error {
+func (m *mockReporter) Discrete(name string, tags []string, val int64) error {
 	m.Data = append(m.Data, mockReported{
 		Name:  name,
 		Tags:  tags,
-		Value: float64(inst.Snapshot()),
+		Value: float64(val),
 	})
 	return nil
 }
 
-func (m *mockReporter) Sample(name string, tags []string, inst Sample) error {
+func (m *mockReporter) Sample(name string, tags []string, val SampleSlice) error {
 	m.Data = append(m.Data, mockReported{
 		Name:  name,
 		Tags:  tags,
-		Value: inst.Snapshot().Mean(),
+		Value: val.Mean(),
 	})
 	return nil
 }

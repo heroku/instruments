@@ -31,15 +31,15 @@ func New(logger Logger) *Reporter {
 func (r *Reporter) Prep() error { return nil }
 
 // Discrete implements instruments.Reporter
-func (r *Reporter) Discrete(name string, tags []string, inst instruments.Discrete) error {
-	metric := fmt.Sprintf("%s|%s:val=%d", name, strings.Join(tags, ","), inst.Snapshot())
+func (r *Reporter) Discrete(name string, tags []string, val int64) error {
+	metric := fmt.Sprintf("%s|%s:val=%d", name, strings.Join(tags, ","), val)
 	r.metrics = append(r.metrics, metric)
 	return nil
 }
 
 // Sample implements instruments.Reporter
-func (r *Reporter) Sample(name string, tags []string, inst instruments.Sample) error {
-	metric := fmt.Sprintf("%s|%s:p95=%d", name, strings.Join(tags, ","), inst.Snapshot().Quantile(0.95))
+func (r *Reporter) Sample(name string, tags []string, val instruments.SampleSlice) error {
+	metric := fmt.Sprintf("%s|%s:p95=%d", name, strings.Join(tags, ","), val.Quantile(0.95))
 	r.metrics = append(r.metrics, metric)
 	return nil
 }

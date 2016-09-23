@@ -57,18 +57,17 @@ func (r *Reporter) Metric(name string, tags []string, v interface{}) {
 }
 
 // Discrete implements instruments.Reporter
-func (r *Reporter) Discrete(name string, tags []string, inst instruments.Discrete) error {
+func (r *Reporter) Discrete(name string, tags []string, val int64) error {
 	metricID := instruments.MetricID(name, tags)
 	r.refs[metricID] = 2
-	r.Metric(name, tags, inst.Snapshot())
+	r.Metric(name, tags, val)
 	return nil
 }
 
 // Sample implements instruments.Reporter
-func (r *Reporter) Sample(name string, tags []string, inst instruments.Sample) error {
-	s := inst.Snapshot()
-	r.Metric(name+".p95", tags, s.Quantile(0.95))
-	r.Metric(name+".p99", tags, s.Quantile(0.99))
+func (r *Reporter) Sample(name string, tags []string, val instruments.SampleSlice) error {
+	r.Metric(name+".p95", tags, val.Quantile(0.95))
+	r.Metric(name+".p99", tags, val.Quantile(0.99))
 	return nil
 }
 

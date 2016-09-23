@@ -35,6 +35,16 @@ func BenchmarkReservoir(b *testing.B) {
 	}
 }
 
+func BenchmarkTimer(b *testing.B) {
+	r := instruments.NewTimer(-1)
+	s := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r.Since(s)
+		r.Snapshot()
+	}
+}
+
 func BenchmarkRegistry_Register(b *testing.B) {
 	r := instruments.New(time.Minute, "")
 	defer r.Close()

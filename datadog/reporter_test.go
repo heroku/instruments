@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/bsm/instruments"
 )
@@ -19,37 +18,27 @@ func init() {
 }
 
 func TestReporter(t *testing.T) {
-	cnt := instruments.NewCounter()
 	testReporter(func(rep *Reporter, body *bytes.Buffer) {
 		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt", []string{"a", "b"}, cnt))
-		assertNoError(t, rep.Discrete("cnt", []string{"a", "c"}, cnt))
-		assertNoError(t, rep.Discrete("cnt", []string{"b", "c"}, cnt))
+		assertNoError(t, rep.Discrete("cnt", []string{"a", "b"}, 0))
+		assertNoError(t, rep.Discrete("cnt", []string{"a", "c"}, 1))
+		assertNoError(t, rep.Discrete("cnt", []string{"b", "c"}, 2))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
 			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","c"],"host":"test.host"},
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["b","c"],"host":"test.host"}
+			{"metric":"cnt","points":[[1414141414,1]],"tags":["a","c"],"host":"test.host"},
+			{"metric":"cnt","points":[[1414141414,2]],"tags":["b","c"],"host":"test.host"}
 		]}`)
 	})
 }
 
 func TestReporter_Flush(t *testing.T) {
-	cnt1a := instruments.NewCounter()
-	cnt1a.Update(3)
-	cnt2a := instruments.NewCounter()
-	cnt2a.Update(7)
-	cnt2b := instruments.NewCounter()
-	cnt2b.Update(5)
-	tmr1a := instruments.NewTimer(5)
-	tmr1a.Update(time.Second)
-
 	testReporter(func(rep *Reporter, body *bytes.Buffer) {
 		// First flush
 		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, cnt1a))
-		assertNoError(t, rep.Discrete("cnt2", []string{"a"}, cnt2a))
-		assertNoError(t, rep.Sample("tmr1", []string{"a"}, tmr1a))
+		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, 3))
+		assertNoError(t, rep.Discrete("cnt2", []string{"a"}, 7))
+		assertNoError(t, rep.Sample("tmr1", []string{"a"}, instruments.SampleSlice{1000}))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
 			{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
@@ -59,10 +48,9 @@ func TestReporter_Flush(t *testing.T) {
 		]}`)
 
 		// Second flush
-		cnt1a.Update(2)
 		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, cnt1a))
-		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, cnt2b))
+		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, 2))
+		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, 5))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
 			{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
@@ -71,8 +59,7 @@ func TestReporter_Flush(t *testing.T) {
 		]}`)
 
 		// Third flush
-		cnt2b.Update(9)
-		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, cnt2b))
+		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, 9))
 		assertNoError(t, rep.Prep())
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[

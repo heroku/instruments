@@ -100,9 +100,8 @@ func NewRate() *Rate {
 // NewRateScale creates a new rate instruments with the given unit.
 func NewRateScale(d time.Duration) *Rate {
 	return &Rate{
-		time:  time.Now().UnixNano(),
-		unit:  d,
-		count: *NewCounter(),
+		time: time.Now().UnixNano(),
+		unit: d,
 	}
 }
 
@@ -129,17 +128,17 @@ type Derive struct {
 
 // NewDerive creates a new derive instruments.
 func NewDerive(v int64) *Derive {
-	return &Derive{
-		value: v,
-		rate:  *NewRate(),
-	}
+	return NewDeriveScale(v, time.Second)
 }
 
 // NewDeriveScale creates a new derive instruments with the given unit.
 func NewDeriveScale(v int64, d time.Duration) *Derive {
 	return &Derive{
 		value: v,
-		rate:  *NewRateScale(d),
+		rate: Rate{
+			time: time.Now().UnixNano(),
+			unit: d,
+		},
 	}
 }
 
@@ -166,12 +165,12 @@ const defaultReservoirSize = 1028
 
 // NewReservoir creates a new reservoir of the given size.
 // If size is negative, it will create a sample of DefaultReservoirSize size.
-func NewReservoir(size int64) *Reservoir {
+func NewReservoir(size int) *Reservoir {
 	if size <= 0 {
 		size = defaultReservoirSize
 	}
 	return &Reservoir{
-		values: make(SampleSlice, size),
+		values: makeSampleSlice(size),
 	}
 }
 
@@ -197,9 +196,8 @@ func (r *Reservoir) Update(v int64) {
 func (r *Reservoir) Snapshot() SampleSlice {
 	r.m.Lock()
 	s := r.size
-	v := make(SampleSlice, min(s, len(r.values)))
+	v := makeSampleSlice(min(s, len(r.values)))
 	copy(v, r.values)
-	r.values = make(SampleSlice, cap(r.values))
 	r.size = 0
 	r.m.Unlock()
 
@@ -233,9 +231,14 @@ type Timer struct {
 }
 
 // NewTimer creates a new Timer with the given sample size.
-func NewTimer(size int64) *Timer {
+func NewTimer(size int) *Timer {
+	if size <= 0 {
+		size = defaultReservoirSize
+	}
 	return &Timer{
-		r: *NewReservoir(size),
+		r: Reservoir{
+			values: makeSampleSlice(size),
+		},
 	}
 }
 

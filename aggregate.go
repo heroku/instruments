@@ -3,6 +3,7 @@ package instruments
 import (
 	"math"
 	"sort"
+	"sync"
 )
 
 // SampleSlice are returned by Sample.Snapshot. These are simple
@@ -91,4 +92,23 @@ func (s SampleSlice) Variance() float64 {
 // StandardDeviation returns standard deviation of the given sample.
 func (s SampleSlice) StandardDeviation() float64 {
 	return math.Sqrt(s.Variance())
+}
+
+// Release releases the SampleSlice to a pool where it can be recycled.
+// Use this with caution! Once released the object must not be accessed
+// by your code again.
+func (s SampleSlice) Release() { sampleSlicePool.Put(s) }
+
+// --------------------------------------------------------------------
+
+var sampleSlicePool sync.Pool
+
+func makeSampleSlice(size int) SampleSlice {
+	if v := sampleSlicePool.Get(); v != nil {
+		s := v.(SampleSlice)
+		if size <= cap(s) {
+			return s[:size]
+		}
+	}
+	return make(SampleSlice, size)
 }
