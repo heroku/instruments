@@ -89,7 +89,7 @@ func (c *Counter) Snapshot() int64 {
 type Rate struct {
 	time  int64
 	unit  time.Duration
-	count *Counter
+	count Counter
 }
 
 // NewRate creates a new rate instrument.
@@ -102,7 +102,7 @@ func NewRateScale(d time.Duration) *Rate {
 	return &Rate{
 		time:  time.Now().UnixNano(),
 		unit:  d,
-		count: NewCounter(),
+		count: *NewCounter(),
 	}
 }
 
@@ -123,7 +123,7 @@ func (r *Rate) Snapshot() int64 {
 
 // Derive tracks the rate of deltas per seconds.
 type Derive struct {
-	rate  *Rate
+	rate  Rate
 	value int64
 }
 
@@ -131,7 +131,7 @@ type Derive struct {
 func NewDerive(v int64) *Derive {
 	return &Derive{
 		value: v,
-		rate:  NewRate(),
+		rate:  *NewRate(),
 	}
 }
 
@@ -139,7 +139,7 @@ func NewDerive(v int64) *Derive {
 func NewDeriveScale(v int64, d time.Duration) *Derive {
 	return &Derive{
 		value: v,
-		rate:  NewRateScale(d),
+		rate:  *NewRateScale(d),
 	}
 }
 
@@ -229,13 +229,13 @@ func (g *Gauge) Snapshot() int64 {
 
 // Timer tracks durations.
 type Timer struct {
-	r *Reservoir
+	r Reservoir
 }
 
 // NewTimer creates a new Timer with the given sample size.
 func NewTimer(size int64) *Timer {
 	return &Timer{
-		r: NewReservoir(size),
+		r: *NewReservoir(size),
 	}
 }
 
