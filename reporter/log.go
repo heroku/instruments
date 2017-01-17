@@ -12,8 +12,7 @@ import (
 
 // Log logs metrics using logfmt every given duration.
 func Log(source string, r *Registry, d time.Duration) {
-	for {
-		time.Sleep(d)
+	for range time.Tick(d) {
 		var parts []string
 		for k, m := range r.Instruments() {
 			switch i := m.(type) {
