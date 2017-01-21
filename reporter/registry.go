@@ -95,3 +95,39 @@ func (r *Registry) Size() int {
 	defer r.m.RUnlock()
 	return len(r.instruments)
 }
+
+func NewRegisteredCounter(name string) *instruments.Counter {
+	counter := instruments.NewCounter()
+	Register(name, counter)
+	return counter
+}
+
+func NewRegisteredRate(name string) *instruments.Rate {
+	rate := instruments.NewRate()
+	Register(name, rate)
+	return rate
+}
+
+func NewRegisteredDerive(name string, value int64) *instruments.Derive {
+	derive := instruments.NewDerive(value)
+	Register(name, derive)
+	return derive
+}
+
+func NewRegisteredReservoir(name string, size int64) *instruments.Reservoir {
+	reservoir := instruments.NewReservoir(size)
+	Register(name, reservoir)
+	return reservoir
+}
+
+func NewRegisteredGauge(name string, value int64) *instruments.Gauge {
+	gauge := instruments.NewGauge(value)
+	Register(name, gauge)
+	return gauge
+}
+
+func NewRegisteredTimer(name string, size int64) *instruments.Timer {
+	timer := instruments.NewTimer(size)
+	Register(name, timer)
+	return timer
+}
