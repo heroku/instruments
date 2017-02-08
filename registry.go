@@ -1,17 +1,23 @@
 package instruments
 
 import (
+	"log"
+	"os"
 	"sync"
 	"time"
 )
 
+type Logger interface {
+	Printf(string, ...interface{})
+}
+
 // Registry is a registry of all instruments.
 type Registry struct {
+	Logger      Logger
 	instruments instrumentsMap
 	reporters   []Reporter
 	prefix      string
 	tags        []string
-	errors      chan error
 	closing     chan struct{}
 	closed      chan error
 	mutex       sync.RWMutex
@@ -29,16 +35,16 @@ func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 		flushInterval = time.Minute
 	}
 
-	reg := &Registry{
+	r := &Registry{
+		Logger:      log.New(os.Stderr, "instruments: ", log.LstdFlags),
 		instruments: newInstrumentsMap(0),
 		prefix:      prefix,
 		tags:        tags,
-		errors:      make(chan error, 10),
 		closing:     make(chan struct{}),
 		closed:      make(chan error, 1),
 	}
-	go reg.loop(flushInterval)
-	return reg
+	go r.loop(flushInterval)
+	return r
 }
 
 // New creates a new Registry without a background flush thread.
@@ -47,13 +53,8 @@ func NewUnstarted(prefix string, tags ...string) *Registry {
 		instruments: newInstrumentsMap(0),
 		prefix:      prefix,
 		tags:        tags,
-		errors:      make(chan error, 10),
 	}
 }
-
-// Errors allows to subscribe to errors reported by the Registry.
-//
-func (r *Registry) Errors() <-chan error { return r.errors }
 
 // Subscribe attaches a reporter to the Registry.
 func (r *Registry) Subscribe(rep Reporter) {
@@ -216,31 +217,20 @@ func (r *Registry) loop(flushInterval time.Duration) {
 	for {
 		select {
 		case <-r.closing:
-			// close errors channel
-			close(r.errors)
-
-			// flush unconsumed errors
-			go func() {
-				for _ = range r.errors {
-				}
-			}()
-
-			// flush again
 			r.closed <- r.Flush()
 			close(r.closed)
 			return
 		case <-flusher.C:
 			if err := r.Flush(); err != nil {
-				r.handleError(err)
+				r.log("flush error: %s", err.Error())
 			}
 		}
 	}
 }
 
-func (r *Registry) handleError(err error) {
-	select {
-	case r.errors <- err:
-	default:
+func (r *Registry) log(s string, v ...interface{}) {
+	if r.Logger != nil {
+		r.Logger.Printf(s, v...)
 	}
 }
 
