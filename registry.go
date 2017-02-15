@@ -140,7 +140,11 @@ func (r *Registry) Flush() error {
 
 	for metricID, val := range r.reset() {
 		name, tags := SplitMetricID(metricID)
-		name = r.prefix + name
+		if len(name) > 0 && name[0] == '|' {
+			name = name[1:]
+		} else {
+			name = r.prefix + name
+		}
 		tags = append(tags, rtags...)
 
 		switch inst := val.(type) {

@@ -21,9 +21,10 @@ func SplitMetricID(metricID string) (name string, tags []string) {
 	if metricID == "" {
 		return "", nil
 	}
-	parts := strings.SplitN(metricID, "|", 2)
-	if len(parts) != 2 || parts[1] == "" {
-		return parts[0], nil
+
+	pos := strings.LastIndexByte(metricID, '|')
+	if pos > 0 && pos < len(metricID)-1 {
+		return metricID[:pos], strings.Split(metricID[pos+1:], ",")
 	}
-	return parts[0], strings.Split(parts[1], ",")
+	return metricID, nil
 }

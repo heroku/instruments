@@ -31,6 +31,7 @@ func TestSplitMetricID(t *testing.T) {
 		tags     []string
 	}{
 		{"counter|a,b", "counter", []string{"a", "b"}},
+		{"|counter|a,b", "|counter", []string{"a", "b"}},
 		{"counter", "counter", nil},
 	}
 

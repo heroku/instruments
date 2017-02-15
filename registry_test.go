@@ -184,6 +184,10 @@ func TestRegistryFlush(t *testing.T) {
 	resv.Update(4)
 	resv.Update(8)
 
+	cnt3 := NewCounter()
+	reg.Register("|custom.foo", nil, cnt3)
+	cnt3.Update(11)
+
 	if err := reg.Flush(); err != nil {
 		t.Error("expected no error")
 	}
@@ -194,6 +198,7 @@ func TestRegistryFlush(t *testing.T) {
 		"myapp.foo|a,b,c,d": 20,
 		"myapp.foo|a,b,e":   7,
 		"myapp.bar|a,b,f,g": 5,
+		"custom.foo|a,b":    11,
 	}; !reflect.DeepEqual(rep.Flushed, exp) {
 		t.Errorf("want:\n%v\ngot:\n%v", exp, rep.Flushed)
 	}
