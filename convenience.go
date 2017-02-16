@@ -145,5 +145,5 @@ func (r *Registry) fetchTimer(name string, tags []string, factory func() interfa
 
 func (r *Registry) handleFetchError(kind, name string, tags []string, inst interface{}) {
 	key := MetricID(name, tags)
-	r.log("expected a %s at '%s', found a stored %T", kind, key, inst)
+	r.logf("expected a %s at '%s', found a stored %T", kind, key, inst)
 }

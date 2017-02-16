@@ -226,13 +226,13 @@ func (r *Registry) loop(flushInterval time.Duration) {
 			return
 		case <-flusher.C:
 			if err := r.Flush(); err != nil {
-				r.log("flush error: %s", err.Error())
+				r.logf("flush error: %s", err.Error())
 			}
 		}
 	}
 }
 
-func (r *Registry) log(s string, v ...interface{}) {
+func (r *Registry) logf(s string, v ...interface{}) {
 	if r.Logger != nil {
 		r.Logger.Printf(s, v...)
 	}
