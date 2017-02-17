@@ -25,7 +25,7 @@ rather than including observations from prior windows, contrary to EWMA based me
 	})
 
 Instruments support two types of instruments:
-Discrete instruments return a single value, and Sample instruments a sorted array of values.
+Discrete instruments return a single value, and Sample instruments a value distribution.
 
 Theses base instruments are available:
 
@@ -42,7 +42,6 @@ instruments as long as they implements the Sample or Discrete interfaces.
 package instruments
 
 import (
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -57,7 +56,7 @@ type Discrete interface {
 
 // Sample represents a sample instrument.
 type Sample interface {
-	Snapshot() SampleSlice
+	Snapshot() Distribution
 }
 
 // Scale returns a conversion factor from one unit to another.
@@ -156,12 +155,12 @@ func (d *Derive) Snapshot() int64 {
 
 // Reservoir tracks a sample of values.
 type Reservoir struct {
-	size   int
-	values SampleSlice
-	m      sync.Mutex
+	dist Distribution
+	size int
+	m    sync.Mutex
 }
 
-const defaultReservoirSize = 1028
+const defaultReservoirSize = 80
 
 // NewReservoir creates a new reservoir of the given size.
 // If size is negative, it will create a sample of DefaultReservoirSize size.
@@ -170,7 +169,8 @@ func NewReservoir(size int) *Reservoir {
 		size = defaultReservoirSize
 	}
 	return &Reservoir{
-		values: makeSampleSlice(size),
+		dist: newHistogram(size),
+		size: size,
 	}
 }
 
@@ -178,30 +178,16 @@ func NewReservoir(size int) *Reservoir {
 // for reference, see: http://en.wikipedia.org/wiki/Reservoir_sampling
 func (r *Reservoir) Update(v int64) {
 	r.m.Lock()
-	defer r.m.Unlock()
-
-	r.size++
-	if s := r.size; s <= len(r.values) {
-		// Not full
-		r.values[s-1] = v
-	} else {
-		// Full
-		if l := rand.Intn(s); l < len(r.values) {
-			r.values[l] = v
-		}
-	}
-}
-
-// Snapshot returns sample as a sorted array.
-func (r *Reservoir) Snapshot() SampleSlice {
-	r.m.Lock()
-	s := r.size
-	v := makeSampleSlice(min(s, len(r.values)))
-	copy(v, r.values)
-	r.size = 0
+	r.dist.Add(v)
 	r.m.Unlock()
 
-	v.Sort()
+}
+
+// Snapshot returns a Distribution
+func (r *Reservoir) Snapshot() Distribution {
+	r.m.Lock()
+	v := r.dist.Clone()
+	r.m.Unlock()
 	return v
 }
 
@@ -236,9 +222,7 @@ func NewTimer(size int) *Timer {
 		size = defaultReservoirSize
 	}
 	return &Timer{
-		r: Reservoir{
-			values: makeSampleSlice(size),
-		},
+		r: Reservoir{dist: newHistogram(size)},
 	}
 }
 
@@ -248,8 +232,8 @@ func (t *Timer) Update(d time.Duration) {
 	t.r.Update(v)
 }
 
-// Snapshot returns durations sample as a sorted array.
-func (t *Timer) Snapshot() SampleSlice {
+// Snapshot returns durations distribution
+func (t *Timer) Snapshot() Distribution {
 	return t.r.Snapshot()
 }
 

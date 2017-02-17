@@ -2,137 +2,77 @@ package instruments
 
 import (
 	"math/rand"
-	"reflect"
 	"testing"
-	"testing/quick"
 	"time"
+
+	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 )
+
+var _ = ginkgo.Describe("Instruments", func() {
+
+	DescribeTable("Reservoir",
+		func(vv []int64, x Distribution) {
+			i := NewReservoir(4)
+			for _, v := range vv {
+				i.Update(v)
+			}
+			Expect(i.Snapshot()).To(Equal(x))
+		},
+		Entry("blank", []int64{}, mockDist()),
+		Entry("single", []int64{1}, mockDist(1)),
+		Entry("a few", []int64{1, -10, 23}, mockDist(-10, 1, 23)),
+	)
+
+	ginkgo.It("should update counters", func() {
+		c := NewCounter()
+		c.Update(7)
+		c.Update(12)
+		Expect(c.Snapshot()).To(Equal(int64(19)))
+	})
+
+	ginkgo.It("should update gauges", func() {
+		g := NewGauge()
+		g.Update(7)
+		g.Update(12)
+		Expect(g.Snapshot()).To(Equal(int64(12)))
+	})
+
+	ginkgo.It("should update derives", func() {
+		d := NewDerive(10)
+		d.Update(7)
+		time.Sleep(10 * time.Millisecond)
+		d.Update(12)
+		Expect(d.Snapshot()).To(BeNumerically("~", 200, 20))
+	})
+
+	ginkgo.It("should update rates", func() {
+		r := NewRate()
+		for i := 0; i < 100; i++ {
+			r.Update(int64(i))
+		}
+		Expect(r.Snapshot()).To(BeNumerically(">", 1e6))
+		Eventually(r.Snapshot).Should(BeNumerically("<", 1e5))
+	})
+
+	ginkgo.It("should update timers", func() {
+		t := NewTimer(-1)
+		for i := 0; i < 100; i++ {
+			t.Update(time.Second * time.Duration(i))
+		}
+		Expect(t.Snapshot().Mean()).To(Equal(49500.0))
+	})
+
+})
+
+// --------------------------------------------------------------------
 
 func init() {
 	rand.Seed(5)
 }
 
-func tolerance(value, control, tolerance int64) bool {
-	if value > (control + tolerance) {
-		return false
-	}
-	if value < (control - tolerance) {
-		return false
-	}
-	return true
-}
-
-func count(values []int64) int64 {
-	c := NewCounter()
-	for _, v := range values {
-		c.Update(v)
-	}
-	return c.Snapshot()
-}
-
-func reference(values []int64) (total int64) {
-	for _, v := range values {
-		total += v
-	}
-	return total
-}
-
-func TestCounter(t *testing.T) {
-	// Yes, this is really close to testing golang "sync/atomic" package.
-	if err := quick.CheckEqual(count, reference, nil); err != nil {
-		t.Error(err)
-	}
-}
-
-func expectedRate(total int64, r *Rate, t *testing.T) {
-	x := calculateRate(total, r.time)
-	v := calculateRate(r.count.count, r.time)
-	if !tolerance(v, x, x/20) {
-		t.Error("invalid rate")
-	}
-}
-
-func calculateRate(c, t int64) int64 {
-	now := time.Now().UnixNano()
-	return Ceil(float64(c) / rateScale / float64(now-t))
-}
-
-func TestRate(t *testing.T) {
-	r := NewRate()
-	t0 := time.Now()
-	n := 10000
-	total := int64((n * (n + 1)) / 2)
-	for i := 0; i < n; i++ {
-		r.Update(int64(i))
-	}
-	expectedRate(total, r, t)
-	time.Sleep(10 * time.Millisecond)
-	expectedRate(total, r, t)
-
-	s, d := r.Snapshot(), time.Since(t0)
-	m := Ceil(float64(total) / (float64(d) * rateScale))
-	if pm := m / 500; !tolerance(s, m, pm) {
-		t.Errorf("snapshot should be the mean, wants %d, got %d (Δ%d ±%d)", s, m, s-m, pm)
-	}
-	if r.Snapshot() != 0 {
-		t.Error("rate should be zero")
-	}
-}
-
-var reservoirTests = []struct {
-	updates  []int64
-	snapshot SampleSlice
-}{
-	{
-		updates:  []int64{1},
-		snapshot: SampleSlice{1},
-	},
-	{
-		updates:  []int64{1, -10, 23},
-		snapshot: SampleSlice{-10, 1, 23},
-	},
-	{
-		updates:  []int64{1, -10, 23, 18},
-		snapshot: SampleSlice{-10, 1, 18},
-	},
-}
-
-func TestReservoir(t *testing.T) {
-	r := NewReservoir(3)
-	for i, rt := range reservoirTests {
-		for _, u := range rt.updates {
-			r.Update(u)
-		}
-		s := r.Snapshot()
-		if !reflect.DeepEqual(s, rt.snapshot) {
-			t.Errorf("%d: wants %v got %v", i, rt.snapshot, s)
-		}
-	}
-}
-
-func TestGauge(t *testing.T) {
-	g := NewGauge()
-	g.Update(2)
-	s := g.Snapshot()
-	if s != 2 {
-		t.Error("gauge didn't store new value")
-	}
-}
-
-func TestDerive(t *testing.T) {
-	d := NewDerive(10)
-	time.Sleep(10 * time.Millisecond)
-	d.Update(15)
-	if d.value != 15 {
-		t.Error("previous value not updated")
-	}
-}
-
-func TestTimer(t *testing.T) {
-	tm := NewTimer(-1)
-	tm.Time(func() { time.Sleep(50e6) })
-	s := tm.Snapshot()
-	if !tolerance(s[0], 50, 10) {
-		t.Error("timer data is out of range")
-	}
+func TestSuite(t *testing.T) {
+	RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "instruments")
 }

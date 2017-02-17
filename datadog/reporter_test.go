@@ -38,7 +38,7 @@ func TestReporter_Flush(t *testing.T) {
 		assertNoError(t, rep.Prep())
 		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, 3))
 		assertNoError(t, rep.Discrete("cnt2", []string{"a"}, 7))
-		assertNoError(t, rep.Sample("tmr1", []string{"a"}, instruments.SampleSlice{1000}))
+		assertNoError(t, rep.Sample("tmr1", []string{"a"}, mockDistribution{}))
 		assertNoError(t, rep.Flush())
 		assertJSON(t, body.String(), `{"series":[
 			{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
@@ -116,3 +116,9 @@ func assertNoError(t *testing.T, err error) {
 		t.Fatal("wanted no error, but got", err.Error())
 	}
 }
+
+type mockDistribution struct {
+	instruments.Distribution
+}
+
+func (mockDistribution) Quantile(_ float64) float64 { return 1000 }

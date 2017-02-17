@@ -38,8 +38,8 @@ func (r *Reporter) Discrete(name string, tags []string, val int64) error {
 }
 
 // Sample implements instruments.Reporter
-func (r *Reporter) Sample(name string, tags []string, val instruments.SampleSlice) error {
-	metric := fmt.Sprintf("%s|%s:p95=%d", name, strings.Join(tags, ","), val.Quantile(0.95))
+func (r *Reporter) Sample(name string, tags []string, dist instruments.Distribution) error {
+	metric := fmt.Sprintf("%s|%s:p95=%d", name, strings.Join(tags, ","), dist.Quantile(0.95))
 	r.metrics = append(r.metrics, metric)
 	return nil
 }

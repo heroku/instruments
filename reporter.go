@@ -8,8 +8,8 @@ type Reporter interface {
 	Prep() error
 	// Discrete accepts a numeric value with name and (sorted) tags
 	Discrete(name string, tags []string, value int64) error
-	// Sample accepts a sampled value with name and (sorted) tags
-	Sample(name string, tags []string, value SampleSlice) error
+	// Sample accepts a sampled distribution with name and (sorted) tags
+	Sample(name string, tags []string, dist Distribution) error
 	// Flush is called at the end of each reporting cycle, which
 	// allows reporters to safely buffer data and emit it to
 	// backend as a bulk.

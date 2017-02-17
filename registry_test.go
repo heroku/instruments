@@ -48,11 +48,11 @@ func (m *mockReporter) Discrete(name string, tags []string, val int64) error {
 	return nil
 }
 
-func (m *mockReporter) Sample(name string, tags []string, val SampleSlice) error {
+func (m *mockReporter) Sample(name string, tags []string, dist Distribution) error {
 	m.Data = append(m.Data, mockReported{
 		Name:  name,
 		Tags:  tags,
-		Value: val.Mean(),
+		Value: dist.Mean(),
 	})
 	return nil
 }

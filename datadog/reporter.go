@@ -65,9 +65,9 @@ func (r *Reporter) Discrete(name string, tags []string, val int64) error {
 }
 
 // Sample implements instruments.Reporter
-func (r *Reporter) Sample(name string, tags []string, val instruments.SampleSlice) error {
-	r.Metric(name+".p95", tags, val.Quantile(0.95))
-	r.Metric(name+".p99", tags, val.Quantile(0.99))
+func (r *Reporter) Sample(name string, tags []string, dist instruments.Distribution) error {
+	r.Metric(name+".p95", tags, dist.Quantile(0.95))
+	r.Metric(name+".p99", tags, dist.Quantile(0.99))
 	return nil
 }
 
