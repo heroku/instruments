@@ -13,30 +13,36 @@ import (
 var _ = ginkgo.Describe("Instruments", func() {
 
 	DescribeTable("Reservoir",
-		func(vv []int64, x Distribution) {
-			i := NewReservoir(4)
+		func(vv []float64, x float64) {
+			i := NewReservoir()
 			for _, v := range vv {
 				i.Update(v)
 			}
-			Expect(i.Snapshot()).To(Equal(x))
+			Expect(i.Snapshot().Mean()).To(BeNumerically("~", x, 0.1))
 		},
-		Entry("blank", []int64{}, mockDist()),
-		Entry("single", []int64{1}, mockDist(1)),
-		Entry("a few", []int64{1, -10, 23}, mockDist(-10, 1, 23)),
+		Entry("blank", []float64{}, 0.0),
+		Entry("single", []float64{1}, 1.0),
+		Entry("a few", []float64{1, -10, 23}, 4.7),
 	)
 
 	ginkgo.It("should update counters", func() {
 		c := NewCounter()
 		c.Update(7)
 		c.Update(12)
-		Expect(c.Snapshot()).To(Equal(int64(19)))
+		Expect(c.Snapshot()).To(Equal(19.0))
+		Expect(c.Snapshot()).To(Equal(0.0))
+
+		for i := 1; i < 100; i++ {
+			c.Update(float64(i))
+		}
+		Expect(c.Snapshot()).To(Equal(4950.0))
 	})
 
 	ginkgo.It("should update gauges", func() {
 		g := NewGauge()
 		g.Update(7)
 		g.Update(12)
-		Expect(g.Snapshot()).To(Equal(int64(12)))
+		Expect(g.Snapshot()).To(Equal(12.0))
 	})
 
 	ginkgo.It("should update derives", func() {
@@ -50,14 +56,14 @@ var _ = ginkgo.Describe("Instruments", func() {
 	ginkgo.It("should update rates", func() {
 		r := NewRate()
 		for i := 0; i < 100; i++ {
-			r.Update(int64(i))
+			r.Update(float64(i))
 		}
 		Expect(r.Snapshot()).To(BeNumerically(">", 1e6))
 		Eventually(r.Snapshot).Should(BeNumerically("<", 1e5))
 	})
 
 	ginkgo.It("should update timers", func() {
-		t := NewTimer(-1)
+		t := NewTimer()
 		for i := 0; i < 100; i++ {
 			t.Update(time.Second * time.Duration(i))
 		}

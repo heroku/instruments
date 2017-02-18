@@ -44,30 +44,27 @@ func (r *Reporter) Prep() error {
 
 // Metric appends a new metric to the reporter. The value v must be either an
 // int64 or float64, otherwise an error is returned
-func (r *Reporter) Metric(name string, tags []string, v interface{}) {
-	switch v.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-		r.metrics = append(r.metrics, Metric{
-			Name:   name,
-			Points: [][2]interface{}{[2]interface{}{r.timestamp, v}},
-			Tags:   tags,
-			Host:   r.Hostname,
-		})
-	}
+func (r *Reporter) Metric(name string, tags []string, v float32) {
+	r.metrics = append(r.metrics, Metric{
+		Name:   name,
+		Points: [][2]interface{}{[2]interface{}{r.timestamp, v}},
+		Tags:   tags,
+		Host:   r.Hostname,
+	})
 }
 
 // Discrete implements instruments.Reporter
-func (r *Reporter) Discrete(name string, tags []string, val int64) error {
+func (r *Reporter) Discrete(name string, tags []string, val float64) error {
 	metricID := instruments.MetricID(name, tags)
 	r.refs[metricID] = 2
-	r.Metric(name, tags, val)
+	r.Metric(name, tags, float32(val))
 	return nil
 }
 
 // Sample implements instruments.Reporter
 func (r *Reporter) Sample(name string, tags []string, dist instruments.Distribution) error {
-	r.Metric(name+".p95", tags, dist.Quantile(0.95))
-	r.Metric(name+".p99", tags, dist.Quantile(0.99))
+	r.Metric(name+".p95", tags, float32(dist.Quantile(0.95)))
+	r.Metric(name+".p99", tags, float32(dist.Quantile(0.99)))
 	return nil
 }
 

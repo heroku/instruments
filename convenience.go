@@ -40,7 +40,7 @@ func (r *Registry) RateScale(name string, tags []string, d time.Duration) *Rate 
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Derive(name string, tags []string, v int64) *Derive {
+func (r *Registry) Derive(name string, tags []string, v float64) *Derive {
 	factory := func() interface{} { return NewDerive(v) }
 	return r.fetchDerive(name, tags, factory)
 }
@@ -51,7 +51,7 @@ func (r *Registry) Derive(name string, tags []string, v int64) *Derive {
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) DeriveScale(name string, tags []string, v int64, d time.Duration) *Derive {
+func (r *Registry) DeriveScale(name string, tags []string, v float64, d time.Duration) *Derive {
 	factory := func() interface{} { return NewDeriveScale(v, d) }
 	return r.fetchDerive(name, tags, factory)
 }
@@ -61,8 +61,8 @@ func (r *Registry) DeriveScale(name string, tags []string, v int64, d time.Durat
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Reservoir(name string, tags []string, size int) *Reservoir {
-	factory := func() interface{} { return NewReservoir(size) }
+func (r *Registry) Reservoir(name string, tags []string) *Reservoir {
+	factory := func() interface{} { return NewReservoir() }
 	return r.fetchReservoir(name, tags, factory)
 }
 
@@ -82,8 +82,8 @@ func newGauge() interface{} { return NewGauge() }
 // If another instrument type is already registered with the same
 // name/tags, a blank one will be returned and an error
 // will be logged to the Errors() channel.
-func (r *Registry) Timer(name string, tags []string, size int) *Timer {
-	factory := func() interface{} { return NewTimer(size) }
+func (r *Registry) Timer(name string, tags []string) *Timer {
+	factory := func() interface{} { return NewTimer() }
 	return r.fetchTimer(name, tags, factory)
 }
 

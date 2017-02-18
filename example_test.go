@@ -23,7 +23,7 @@ func ExampleRate() {
 }
 
 func ExampleReservoir() {
-	reservoir := instruments.NewReservoir(-1)
+	reservoir := instruments.NewReservoir()
 	reservoir.Update(12)
 	reservoir.Update(54)
 	reservoir.Update(34)
@@ -33,9 +33,9 @@ func ExampleReservoir() {
 
 func ExampleGauge() {
 	gauge := instruments.NewGauge()
-	gauge.Update(35)
+	gauge.Update(35.6)
 	fmt.Println(gauge.Snapshot())
-	// Output: 35
+	// Output: 35.6
 }
 
 func ExampleDerive() {
@@ -46,17 +46,9 @@ func ExampleDerive() {
 }
 
 func ExampleTimer() {
-	timer := instruments.NewTimer(-1)
+	timer := instruments.NewTimer()
 	ts := time.Now()
 	time.Sleep(10 * time.Millisecond)
 	timer.Since(ts)
-	fmt.Println(timer.Snapshot().Quantile(0.99))
-}
-
-func ExampleTimer_Time() {
-	timer := instruments.NewTimer(-1)
-	timer.Time(func() {
-		time.Sleep(10 * time.Millisecond)
-	})
 	fmt.Println(timer.Snapshot().Quantile(0.99))
 }

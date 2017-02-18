@@ -39,11 +39,11 @@ func (m *mockReporter) Flush() error {
 	return nil
 }
 
-func (m *mockReporter) Discrete(name string, tags []string, val int64) error {
+func (m *mockReporter) Discrete(name string, tags []string, val float64) error {
 	m.Data = append(m.Data, mockReported{
 		Name:  name,
 		Tags:  tags,
-		Value: float64(val),
+		Value: val,
 	})
 	return nil
 }
@@ -177,7 +177,7 @@ func TestRegistryFlush(t *testing.T) {
 	reg.Register("foo", []string{"e"}, cnt2)
 	cnt2.Update(7)
 
-	resv := NewReservoir(4)
+	resv := NewReservoir()
 	reg.Register("bar", []string{"f", "g"}, resv)
 	resv.Update(2)
 	resv.Update(6)
