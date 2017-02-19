@@ -14,7 +14,7 @@ type Logger interface {
 // Registry is a registry of all instruments.
 type Registry struct {
 	Logger      Logger
-	instruments instrumentsMap
+	instruments map[string]interface{}
 	reporters   []Reporter
 	prefix      string
 	tags        []string
@@ -37,7 +37,7 @@ func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 
 	r := &Registry{
 		Logger:      log.New(os.Stderr, "instruments: ", log.LstdFlags),
-		instruments: newInstrumentsMap(0),
+		instruments: make(map[string]interface{}),
 		prefix:      prefix,
 		tags:        tags,
 		closing:     make(chan struct{}),
@@ -50,7 +50,7 @@ func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 // New creates a new Registry without a background flush thread.
 func NewUnstarted(prefix string, tags ...string) *Registry {
 	return &Registry{
-		instruments: newInstrumentsMap(0),
+		instruments: make(map[string]interface{}),
 		prefix:      prefix,
 		tags:        tags,
 	}
@@ -206,10 +206,10 @@ func (r *Registry) Close() error {
 	return <-r.closed
 }
 
-func (r *Registry) reset() instrumentsMap {
+func (r *Registry) reset() map[string]interface{} {
 	r.mutex.Lock()
 	instruments := r.instruments
-	r.instruments = newInstrumentsMap(0)
+	r.instruments = make(map[string]interface{})
 	r.mutex.Unlock()
 	return instruments
 }
@@ -236,24 +236,4 @@ func (r *Registry) logf(s string, v ...interface{}) {
 	if r.Logger != nil {
 		r.Logger.Printf(s, v...)
 	}
-}
-
-// --------------------------------------------------------------------
-
-var instrumentsMapPool sync.Pool
-
-type instrumentsMap map[string]interface{}
-
-func newInstrumentsMap(size int) instrumentsMap {
-	if v := instrumentsMapPool.Get(); v != nil {
-		return v.(instrumentsMap)
-	}
-	return make(instrumentsMap, size)
-}
-
-func (m instrumentsMap) Release() {
-	for k := range m {
-		delete(m, k)
-	}
-	instrumentsMapPool.Put(m)
 }

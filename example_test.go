@@ -2,10 +2,31 @@ package instruments_test
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/bsm/instruments"
+	"github.com/bsm/instruments/logreporter"
 )
+
+func ExampleRegistry() {
+	// Create new registry instance, flushing at minutely intervals
+	registry := instruments.New(time.Minute, "myapp.")
+	defer registry.Close()
+
+	// Subscribe a reporter
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	registry.Subscribe(logreporter.New(logger))
+
+	// Fetch a timer
+	timer := registry.Timer("processing-time", []string{"tag1", "tag2"})
+
+	// Measure something
+	start := time.Now()
+	time.Sleep(20 * time.Millisecond)
+	timer.Since(start)
+}
 
 func ExampleCounter() {
 	counter := instruments.NewCounter()

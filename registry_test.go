@@ -1,18 +1,146 @@
 package instruments
 
 import (
-	"reflect"
-	"testing"
 	"time"
+
+	"github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-// Testing extensions for Registry
+var _ = ginkgo.Describe("Registry", func() {
+	var subject *Registry
+
+	var reporter *mockReporter
+	var nCounters, nRates int
+
+	newCounter := func() interface{} {
+		nCounters++
+		return NewCounter()
+	}
+	newRate := func() interface{} {
+		nRates++
+		return NewRate()
+	}
+
+	ginkgo.BeforeEach(func() {
+		nCounters, nRates = 0, 0
+		reporter = new(mockReporter)
+
+		subject = New(time.Minute, "myapp.", "a", "b")
+		subject.Subscribe(reporter)
+	})
+
+	ginkgo.AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+	})
+
+	ginkgo.It("should register/unregister", func() {
+		subject.Register("foo", []string{"a", "b"}, NewRate())
+		Expect(subject.Size()).To(Equal(1))
+
+		subject.Unregister("foo", []string{"b", "a"})
+		Expect(subject.Size()).To(Equal(0))
+
+		subject.Register("foo", []string{"a", "b"}, NewRate())
+		subject.Register("foo", []string{"b", "a"}, NewRate())
+		Expect(subject.Size()).To(Equal(1))
+
+		subject.Register("bar", []string{}, NewRate())
+		subject.Register("bar", nil, NewRate())
+		Expect(subject.Size()).To(Equal(2))
+
+		subject.Unregister("foo", []string{"b", "a"})
+		subject.Unregister("bar", []string{"a"})
+		Expect(subject.Size()).To(Equal(1))
+
+		subject.Unregister("bar", nil)
+		Expect(subject.Size()).To(Equal(0))
+	})
+
+	ginkgo.It("should get pre-registered", func() {
+		rate := NewRate()
+		subject.Register("foo", []string{"a", "b"}, rate)
+		Expect(subject.Get("foo", []string{"a", "b"})).To(Equal(rate))
+		Expect(subject.Get("foo", []string{"b", "a"})).To(Equal(rate))
+		Expect(subject.Get("foo", []string{"x"})).To(BeNil())
+	})
+
+	ginkgo.It("should fetch counters", func() {
+		Expect(subject.Fetch("foo", nil, newCounter)).To(BeAssignableToTypeOf(&Counter{}))
+		Expect(nCounters).To(Equal(1))
+
+		Expect(subject.Fetch("foo", nil, newCounter)).To(BeAssignableToTypeOf(&Counter{}))
+		Expect(nCounters).To(Equal(1))
+
+		Expect(subject.Fetch("foo", []string{"a"}, newCounter)).To(BeAssignableToTypeOf(&Counter{}))
+		Expect(nCounters).To(Equal(2))
+	})
+
+	ginkgo.It("should fetch rates", func() {
+		Expect(subject.Fetch("foo", nil, newRate)).To(BeAssignableToTypeOf(&Rate{}))
+		Expect(nRates).To(Equal(1))
+
+		Expect(subject.Fetch("foo", nil, newRate)).To(BeAssignableToTypeOf(&Rate{}))
+		Expect(nRates).To(Equal(1))
+
+		Expect(subject.Fetch("foo", []string{"a"}, newRate)).To(BeAssignableToTypeOf(&Rate{}))
+		Expect(nRates).To(Equal(2))
+	})
+
+	ginkgo.It("should flush", func() {
+		// force-extend tags cap
+		subject.tags = append(subject.tags, "x")[:2]
+
+		cnt1 := NewCounter()
+		subject.Register("foo", []string{"c", "d"}, cnt1)
+		cnt1.Update(2)
+		cnt1.Update(6)
+		cnt1.Update(4)
+		cnt1.Update(8)
+
+		cnt2 := NewCounter()
+		subject.Register("foo", []string{"e"}, cnt2)
+		cnt2.Update(7)
+
+		resv := NewReservoir()
+		subject.Register("bar", []string{"f", "g"}, resv)
+		resv.Update(2)
+		resv.Update(6)
+		resv.Update(4)
+		resv.Update(8)
+
+		cnt3 := NewCounter()
+		subject.Register("|custom.foo", nil, cnt3)
+		cnt3.Update(11)
+
+		Expect(subject.Flush()).To(Succeed())
+		Expect(reporter.Prepped).To(BeTrue())
+		Expect(reporter.Flushed).To(Equal(map[string]float64{
+			"myapp.foo|a,b,c,d": 20,
+			"myapp.foo|a,b,e":   7,
+			"myapp.bar|a,b,f,g": 5,
+			"custom.foo|a,b":    11,
+		}))
+	})
+
+	ginkgo.It("should reset", func() {
+		subject.Register("foo", []string{"a", "b"}, NewRate())
+		Expect(subject.Size()).To(Equal(1))
+
+		snap := subject.reset()
+		Expect(snap).To(HaveLen(1))
+		Expect(subject.Size()).To(Equal(0))
+	})
+
+})
+
+// --------------------------------------------------------------------
 
 func (r *Registry) GetInstruments() map[string]interface{}            { return r.instruments }
 func (r *Registry) SetInstruments(instruments map[string]interface{}) { r.instruments = instruments }
 func (r *Registry) Reset() int                                        { return len(r.reset()) }
 
-// Mock reporter
+// --------------------------------------------------------------------
 
 type mockReported struct {
 	Name  string
@@ -55,167 +183,4 @@ func (m *mockReporter) Sample(name string, tags []string, dist Distribution) err
 		Value: dist.Mean(),
 	})
 	return nil
-}
-
-// --------------------------------------------------------------------
-
-func TestRegistry(t *testing.T) {
-	r := New(time.Minute, "")
-	defer r.Close()
-
-	r.Register("foo", []string{"a", "b"}, NewRate())
-	if r.Size() != 1 {
-		t.Error("instrument not registered")
-	}
-	r.Unregister("foo", []string{"b", "a"})
-	if r.Size() != 0 {
-		t.Error("instrument not unregistered")
-	}
-}
-
-func TestUnstartedRegistry(t *testing.T) {
-	r := NewUnstarted("")
-	if err := r.Close(); err != nil {
-		t.Error("unexpected error on close", err)
-	}
-}
-
-func TestRegistryNormalization(t *testing.T) {
-	r := New(time.Minute, "")
-	defer r.Close()
-
-	r.Register("foo", []string{"a", "b"}, NewRate())
-	r.Register("foo", []string{"b", "a"}, NewRate())
-	r.Register("bar", []string{}, NewRate())
-	r.Register("bar", nil, NewRate())
-	if r.Size() != 2 {
-		t.Error("incorrect normalization")
-	}
-
-	r.Unregister("foo", []string{"b", "a"})
-	r.Unregister("bar", []string{"a"})
-	if r.Size() != 1 {
-		t.Error("incorrect normalization")
-	}
-
-	r.Unregister("bar", nil)
-	if r.Size() != 0 {
-		t.Error("incorrect normalization")
-	}
-}
-
-func TestRegistryRegister(t *testing.T) {
-	r := New(time.Minute, "")
-	defer r.Close()
-
-	r.Register("foo", nil, NewRate())
-	if r := r.Get("foo", nil); r == nil {
-		t.Error("instrument not returned")
-	}
-}
-
-func TestRegistryFetch(t *testing.T) {
-	r := New(time.Minute, "")
-	defer r.Close()
-
-	var ic, ir int
-	nc := func() interface{} {
-		ic++
-		return NewCounter()
-	}
-	nr := func() interface{} {
-		ir++
-		return NewRate()
-	}
-
-	if _, ok := r.Fetch("foo", nil, nc).(*Counter); !ok {
-		t.Error("unexpected instrument, expected counter")
-	} else if ic != 1 {
-		t.Error("expected NewCounter to have been called")
-	}
-
-	if _, ok := r.Fetch("foo", nil, nr).(*Counter); !ok {
-		t.Error("unexpected instrument, expected counter")
-	} else if ic != 1 {
-		t.Error("expected NewCounter not to have been called again")
-	}
-
-	if _, ok := r.Fetch("foo", []string{"b", "a"}, nr).(*Rate); !ok {
-		t.Error("unexpected instrument, expected rate")
-	} else if ir != 1 {
-		t.Error("expected NewRate to have been called")
-	}
-
-	if _, ok := r.Fetch("foo", []string{"a", "b"}, nc).(*Rate); !ok {
-		t.Error("unexpected instrument, expected rate")
-	} else if ir != 1 {
-		t.Error("expected NewRate not to have been called again")
-	}
-
-	if _, ok := r.Fetch("foo", []string{"c"}, nr).(*Rate); !ok {
-		t.Error("unexpected instrument, expected rate")
-	} else if ir != 2 {
-		t.Error("expected NewRate to have been called")
-	}
-}
-
-func TestRegistryFlush(t *testing.T) {
-	rep := new(mockReporter)
-	reg := New(time.Minute, "myapp.", "a", "b")
-	reg.tags = append(reg.tags, "x")[:2] // force-extend tags cap
-	reg.Subscribe(rep)
-	defer reg.Close()
-
-	cnt1 := NewCounter()
-	reg.Register("foo", []string{"c", "d"}, cnt1)
-	cnt1.Update(2)
-	cnt1.Update(6)
-	cnt1.Update(4)
-	cnt1.Update(8)
-
-	cnt2 := NewCounter()
-	reg.Register("foo", []string{"e"}, cnt2)
-	cnt2.Update(7)
-
-	resv := NewReservoir()
-	reg.Register("bar", []string{"f", "g"}, resv)
-	resv.Update(2)
-	resv.Update(6)
-	resv.Update(4)
-	resv.Update(8)
-
-	cnt3 := NewCounter()
-	reg.Register("|custom.foo", nil, cnt3)
-	cnt3.Update(11)
-
-	if err := reg.Flush(); err != nil {
-		t.Error("expected no error")
-	}
-	if !rep.Prepped {
-		t.Errorf("expected reported to be prepped")
-	}
-	if exp := map[string]float64{
-		"myapp.foo|a,b,c,d": 20,
-		"myapp.foo|a,b,e":   7,
-		"myapp.bar|a,b,f,g": 5,
-		"custom.foo|a,b":    11,
-	}; !reflect.DeepEqual(rep.Flushed, exp) {
-		t.Errorf("want:\n%v\ngot:\n%v", exp, rep.Flushed)
-	}
-}
-
-func TestRegistryReset(t *testing.T) {
-	r := New(time.Minute, "")
-	defer r.Close()
-
-	r.Register("foo", nil, NewRate())
-	if r.Size() != 1 {
-		t.Error("instrument not registered")
-	}
-	if snapshot := r.reset(); len(snapshot) != 1 {
-		t.Error("instrument not returned")
-	}
-	if r.Size() != 0 {
-		t.Error("instrument not snapshoted")
-	}
 }

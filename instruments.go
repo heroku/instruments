@@ -4,26 +4,6 @@ Package instruments allows you to collects metrics over discrete time intervals.
 Collected metrics will only reflect observations from last time window only,
 rather than including observations from prior windows, contrary to EWMA based metrics.
 
-	// Create new registry instance, flushing at minutely intervals
-	registry := instruments.New(time.Minute)
-	defer registry.Close()
-
-	// Watch errors that may happen during flush cycles
-	go func() {
-		for err := registry.Errors() {
-			log.Println("ERROR", err)
-		}
-	}()
-
-	// Subscribe a reporter
-	registry.Subscribe(logreporter.New("myapp."))
-
-	// Fetch a timer and measure something
-	timer := registry.Timer("processing-time")
-	timer.Time(func() {
-	  ...
-	})
-
 Instruments support two types of instruments:
 Discrete instruments return a single value, and Sample instruments a value distribution.
 
@@ -58,6 +38,8 @@ type Sample interface {
 	Snapshot() Distribution
 }
 
+// --------------------------------------------------------------------
+
 // Counter holds a counter that can be incremented or decremented.
 type Counter struct {
 	count float64
@@ -77,6 +59,8 @@ func (c *Counter) Update(v float64) {
 func (c *Counter) Snapshot() float64 {
 	return swapFloat64(&c.count, 0)
 }
+
+// --------------------------------------------------------------------
 
 // Rate tracks the rate of values per second.
 type Rate struct {
@@ -110,6 +94,8 @@ func (r *Rate) Snapshot() float64 {
 	dur := now - atomic.SwapInt64(&r.time, now)
 	return r.count.Snapshot() / float64(dur) * r.unit
 }
+
+// --------------------------------------------------------------------
 
 // Derive tracks the rate of deltas per seconds.
 type Derive struct {
@@ -152,6 +138,8 @@ type Reservoir struct {
 	m    sync.Mutex
 }
 
+// --------------------------------------------------------------------
+
 const defaultHistSize = 64
 
 // NewReservoir creates a new reservoir
@@ -177,6 +165,8 @@ func (r *Reservoir) Snapshot() Distribution {
 	return v
 }
 
+// --------------------------------------------------------------------
+
 // Gauge tracks a value.
 type Gauge struct {
 	value uint64
@@ -197,6 +187,8 @@ func (g *Gauge) Snapshot() float64 {
 	u := atomic.LoadUint64(&g.value)
 	return math.Float64frombits(u)
 }
+
+// --------------------------------------------------------------------
 
 // Timer tracks durations.
 type Timer struct {
