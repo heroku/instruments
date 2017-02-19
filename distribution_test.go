@@ -80,10 +80,10 @@ var _ = ginkgo.Describe("Distribution", func() {
 	})
 
 	ginkgo.It("should add", func() {
-		bins := std.(*histogram).bins
-		Expect(bins).To(HaveLen(4))
-		Expect(bins).To(HaveCap(5))
-		Expect(bins).To(Equal([]histogramBin{
+		h := std.(*histogram)
+		Expect(h.bins).To(HaveLen(4))
+		Expect(h.bins).To(HaveCap(5))
+		Expect(h.bins).To(Equal([]histogramBin{
 			{w: -2, v: 6.5},
 			{w: 1, v: 15},
 			{w: -4, v: 39},

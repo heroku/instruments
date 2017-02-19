@@ -52,21 +52,23 @@ type histogram struct {
 	min, max float64
 }
 
-func newHistogram(sz int) *histogram {
+func newHistogram(sz int) (h *histogram) {
 	if v := histogramPool.Get(); v != nil {
-		if h := v.(*histogram); sz < cap(h.bins) {
-			h.Reset(sz)
-			return h
-		}
+		h = v.(*histogram)
+	} else {
+		h = new(histogram)
 	}
-	return &histogram{
-		bins: make([]histogramBin, 0, sz+1),
-		size: sz,
-	}
+	h.Reset(sz)
+	return
 }
 
 func (h *histogram) Reset(sz int) {
-	h.bins = h.bins[:0]
+	if sz < cap(h.bins) {
+		h.bins = h.bins[:0]
+	} else {
+		h.bins = make([]histogramBin, 0, sz+1)
+	}
+
 	h.size = sz
 	h.min = 0
 	h.max = 0
@@ -77,6 +79,7 @@ func (h *histogram) Clone() Distribution {
 	x := newHistogram(h.size)
 	x.bins = x.bins[:len(h.bins)]
 	copy(x.bins, h.bins)
+
 	x.min = h.min
 	x.max = h.max
 	x.cnt = h.cnt
@@ -88,7 +91,7 @@ func (h *histogram) Count() int   { return h.cnt }
 func (h *histogram) Min() float64 { return h.min }
 func (h *histogram) Max() float64 { return h.max }
 
-func (h *histogram) Mean() float64 {
+func (h *histogram) Sum() float64 {
 	if h.cnt == 0 {
 		return 0.0
 	}
@@ -97,7 +100,14 @@ func (h *histogram) Mean() float64 {
 	for _, b := range h.bins {
 		sum += b.Sum()
 	}
-	return sum / float64(h.cnt)
+	return sum
+}
+
+func (h *histogram) Mean() float64 {
+	if h.cnt == 0 {
+		return 0.0
+	}
+	return h.Sum() / float64(h.cnt)
 }
 
 func (h *histogram) Variance() float64 {
@@ -144,7 +154,9 @@ func (h *histogram) Quantile(q float64) float64 {
 	}
 }
 
-func (h *histogram) Add(v float64) {
+func (h *histogram) Add(v float64) { h.AddN(v, 1) }
+
+func (h *histogram) AddN(v float64, n int) {
 	if h.cnt == 0 || v < h.min {
 		h.min = v
 	}
@@ -152,8 +164,8 @@ func (h *histogram) Add(v float64) {
 		h.max = v
 	}
 
-	h.insert(v)
-	h.cnt++
+	h.insert(v, n)
+	h.cnt += n
 
 	h.prune()
 }
@@ -181,22 +193,19 @@ func (h *histogram) resolve(b1, b2 histogramBin, delta float64) float64 {
 	return b1.v + (b2.v-b1.v)*z
 }
 
-func (h *histogram) insert(v float64) {
+func (h *histogram) insert(v float64, n int) {
 	pos := h.search(v)
-
 	if pos < len(h.bins) && h.bins[pos].v == v {
-		h.bins[pos].w += math.Copysign(1, h.bins[pos].w)
+		h.bins[pos].w += math.Copysign(float64(n), h.bins[pos].w)
 		return
 	}
 
-	if pos < len(h.bins) {
-		h.bins = h.bins[:len(h.bins)+1]
+	maxi := len(h.bins)
+	h.bins = h.bins[:len(h.bins)+1]
+	if pos != maxi {
 		copy(h.bins[pos+1:], h.bins[pos:])
-	} else {
-		h.bins = h.bins[:len(h.bins)+1]
 	}
-
-	h.bins[pos].w = 1
+	h.bins[pos].w = float64(n)
 	h.bins[pos].v = v
 }
 

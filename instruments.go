@@ -140,7 +140,7 @@ type Reservoir struct {
 
 // --------------------------------------------------------------------
 
-const defaultHistSize = 64
+const defaultHistSize = 20
 
 // NewReservoir creates a new reservoir
 func NewReservoir() *Reservoir {
