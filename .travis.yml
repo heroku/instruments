@@ -3,7 +3,7 @@ sudo: false
 go:
   - 1.7.4
   - 1.6.4
-notifications:
-  email: false
+install:
+	- go get -u -t ./...
 script:
   - make default test-race

@@ -20,7 +20,6 @@ var _ = ginkgo.Describe("Instruments", func() {
 			}
 			Expect(i.Snapshot().Mean()).To(BeNumerically("~", x, 0.1))
 		},
-		Entry("blank", []float64{}, 0.0),
 		Entry("single", []float64{1}, 1.0),
 		Entry("a few", []float64{1, -10, 23}, 4.7),
 	)

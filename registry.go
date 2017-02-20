@@ -5,6 +5,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/bsm/histogram"
 )
 
 type Logger interface {
@@ -162,7 +164,9 @@ func (r *Registry) Flush() error {
 					return err
 				}
 			}
-			val.Release()
+			if h, ok := val.(*histogram.Histogram); ok {
+				releaseHistogram(h)
+			}
 		}
 	}
 

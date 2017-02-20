@@ -26,6 +26,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bsm/histogram"
 )
 
 // Discrete represents a single value instrument.
@@ -133,19 +135,16 @@ func (d *Derive) Snapshot() float64 {
 
 // Reservoir tracks a sample of values.
 type Reservoir struct {
-	dist Distribution
-	size int
+	hist *histogram.Histogram
 	m    sync.Mutex
 }
 
 // --------------------------------------------------------------------
 
-const defaultHistSize = 20
-
 // NewReservoir creates a new reservoir
 func NewReservoir() *Reservoir {
 	return &Reservoir{
-		dist: newHistogram(defaultHistSize),
+		hist: newHistogram(defaultHistogramSize),
 	}
 }
 
@@ -153,16 +152,23 @@ func NewReservoir() *Reservoir {
 // for reference, see: http://en.wikipedia.org/wiki/Reservoir_sampling
 func (r *Reservoir) Update(v float64) {
 	r.m.Lock()
-	r.dist.Add(v)
+	r.hist.Add(v)
 	r.m.Unlock()
 }
 
 // Snapshot returns a Distribution
 func (r *Reservoir) Snapshot() Distribution {
+	h := newHistogram(defaultHistogramSize)
 	r.m.Lock()
-	v := r.dist.Clone()
+	h = r.hist.Copy(h)
 	r.m.Unlock()
-	return v
+	return h
+}
+
+// Release returns the instument to a pool.
+// Make sure not to use the object again after calling this method.
+func (r *Reservoir) Release() {
+	releaseHistogram(r.hist)
 }
 
 // --------------------------------------------------------------------
@@ -198,7 +204,7 @@ type Timer struct {
 // NewTimer creates a new Timer with millisecond resolution
 func NewTimer() *Timer {
 	return &Timer{
-		r: Reservoir{dist: newHistogram(defaultHistSize)},
+		r: Reservoir{hist: newHistogram(defaultHistogramSize)},
 	}
 }
 
@@ -215,4 +221,10 @@ func (t *Timer) Snapshot() Distribution {
 // Since records duration since the given start time.
 func (t *Timer) Since(start time.Time) {
 	t.Update(time.Since(start))
+}
+
+// Release returns the instument to a pool.
+// Make sure not to use the object again after calling this method.
+func (t *Timer) Release() {
+	t.r.Release()
 }
