@@ -31,8 +31,7 @@ func BenchmarkReservoir(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Update(float64(i))
-		r.Snapshot()
-		r.Release()
+		instruments.ReleaseDistribution(r.Snapshot())
 	}
 }
 
@@ -42,8 +41,7 @@ func BenchmarkTimer(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Since(s)
-		r.Snapshot()
-		r.Release()
+		instruments.ReleaseDistribution(r.Snapshot())
 	}
 }
 

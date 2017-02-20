@@ -165,12 +165,6 @@ func (r *Reservoir) Snapshot() Distribution {
 	return h
 }
 
-// Release returns the instument to a pool.
-// Make sure not to use the object again after calling this method.
-func (r *Reservoir) Release() {
-	releaseHistogram(r.hist)
-}
-
 // --------------------------------------------------------------------
 
 // Gauge tracks a value.
@@ -221,10 +215,4 @@ func (t *Timer) Snapshot() Distribution {
 // Since records duration since the given start time.
 func (t *Timer) Since(start time.Time) {
 	t.Update(time.Since(start))
-}
-
-// Release returns the instument to a pool.
-// Make sure not to use the object again after calling this method.
-func (t *Timer) Release() {
-	t.r.Release()
 }

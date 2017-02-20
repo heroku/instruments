@@ -43,3 +43,9 @@ func newHistogram(sz int) (h *histogram.Histogram) {
 func releaseHistogram(h *histogram.Histogram) {
 	histogramPool.Put(h)
 }
+
+func releaseDistribution(d Distribution) {
+	if h, ok := d.(*histogram.Histogram); ok {
+		releaseHistogram(h)
+	}
+}

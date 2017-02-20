@@ -136,12 +136,6 @@ var _ = ginkgo.Describe("Registry", func() {
 
 // --------------------------------------------------------------------
 
-func (r *Registry) GetInstruments() map[string]interface{}            { return r.instruments }
-func (r *Registry) SetInstruments(instruments map[string]interface{}) { r.instruments = instruments }
-func (r *Registry) Reset() int                                        { return len(r.reset()) }
-
-// --------------------------------------------------------------------
-
 type mockReported struct {
 	Name  string
 	Tags  []string

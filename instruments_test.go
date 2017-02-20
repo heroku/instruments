@@ -81,3 +81,15 @@ func TestSuite(t *testing.T) {
 	RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "instruments")
 }
+
+// --------------------------------------------------------------------
+
+// test exports
+
+func (r *Registry) GetInstruments() map[string]interface{}            { return r.instruments }
+func (r *Registry) SetInstruments(instruments map[string]interface{}) { r.instruments = instruments }
+func (r *Registry) Reset() int                                        { return len(r.reset()) }
+
+func ReleaseDistribution(d Distribution) {
+	releaseDistribution(d)
+}
