@@ -1,118 +1,106 @@
 package datadog
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"net/http"
 	"net/http/httptest"
-	"reflect"
-	"strings"
-	"testing"
 
 	"github.com/bsm/instruments"
+	"github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func init() {
-	unixTime = func() int64 { return 1414141414 }
-}
+var _ = ginkgo.Describe("Reporter", func() {
+	var subject *Reporter
 
-func TestReporter(t *testing.T) {
-	testReporter(func(rep *Reporter, body *bytes.Buffer) {
-		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt", []string{"a", "b"}, 0))
-		assertNoError(t, rep.Discrete("cnt", []string{"a", "c"}, 1))
-		assertNoError(t, rep.Discrete("cnt", []string{"b", "c"}, 2))
-		assertNoError(t, rep.Flush())
-		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
-			{"metric":"cnt","points":[[1414141414,1]],"tags":["a","c"],"host":"test.host"},
-			{"metric":"cnt","points":[[1414141414,2]],"tags":["b","c"],"host":"test.host"}
-		]}`)
+	var server *httptest.Server
+	var last *mockServerRequest
+
+	ginkgo.BeforeEach(func() {
+		last = new(mockServerRequest)
+		server = newMockServer(last)
+
+		subject = New("BOGUS")
+		subject.Client.URL = server.URL
+		subject.Hostname = "test.host"
 	})
-}
 
-func TestReporter_Flush(t *testing.T) {
-	testReporter(func(rep *Reporter, body *bytes.Buffer) {
-		// First flush
-		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, 3))
-		assertNoError(t, rep.Discrete("cnt2", []string{"a"}, 7))
-		assertNoError(t, rep.Sample("tmr1", []string{"a"}, instruments.SampleSlice{1000}))
-		assertNoError(t, rep.Flush())
-		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
-			{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
-			{"metric":"tmr1.p95","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"},
-			{"metric":"tmr1.p99","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"}
-		]}`)
-
-		// Second flush
-		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Discrete("cnt1", []string{"a"}, 2))
-		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, 5))
-		assertNoError(t, rep.Flush())
-		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
-			{"metric":"cnt2","points":[[1414141414,5]],"tags":["b"],"host":"test.host"},
-			{"metric":"cnt2","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
-		]}`)
-
-		// Third flush
-		assertNoError(t, rep.Discrete("cnt2", []string{"b"}, 9))
-		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Flush())
-		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt2","points":[[1414141414,9]],"tags":["b"],"host":"test.host"},
-			{"metric":"cnt1","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
-		]}`)
-
-		// Final flush
-		assertNoError(t, rep.Prep())
-		assertNoError(t, rep.Flush())
-		assertJSON(t, body.String(), `{"series":[
-			{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
-		]}`)
+	ginkgo.AfterEach(func() {
+		server.Close()
 	})
+
+	ginkgo.It("should support reporter cycle", func() {
+		Expect(subject.Prep()).To(Succeed())
+		Expect(subject.Discrete("cnt", []string{"a", "b"}, 0)).To(Succeed())
+		Expect(subject.Discrete("cnt", []string{"a", "c"}, 1)).To(Succeed())
+		Expect(subject.Discrete("cnt", []string{"b", "c"}, 2)).To(Succeed())
+		Expect(subject.Flush()).To(Succeed())
+
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
+				{"metric":"cnt","points":[[1414141414,1]],"tags":["a","c"],"host":"test.host"},
+				{"metric":"cnt","points":[[1414141414,2]],"tags":["b","c"],"host":"test.host"}
+			]
+		}`))
+	})
+
+	ginkgo.It("should expire old metrics after flush", func() {
+		Expect(subject.Prep()).To(Succeed())
+		Expect(subject.Discrete("cnt1", []string{"a"}, 3)).To(Succeed())
+		Expect(subject.Discrete("cnt2", []string{"a"}, 7)).To(Succeed())
+		Expect(subject.Sample("tmr1", []string{"a"}, mockDistribution{})).To(Succeed())
+		Expect(subject.Flush()).To(Succeed())
+
+		// after 1st flush
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
+				{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
+				{"metric":"tmr1.p95","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"},
+				{"metric":"tmr1.p99","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"}
+			]
+		}`))
+
+		Expect(subject.Prep()).To(Succeed())
+		Expect(subject.Discrete("cnt1", []string{"a"}, 2)).To(Succeed())
+		Expect(subject.Discrete("cnt2", []string{"b"}, 5)).To(Succeed())
+		Expect(subject.Flush()).To(Succeed())
+
+		// after 2nd flush
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
+				{"metric":"cnt2","points":[[1414141414,5]],"tags":["b"],"host":"test.host"},
+				{"metric":"cnt2","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
+			]
+		}`))
+
+		Expect(subject.Prep()).To(Succeed())
+		Expect(subject.Discrete("cnt2", []string{"b"}, 9)).To(Succeed())
+		Expect(subject.Flush()).To(Succeed())
+
+		// after 3nd flush
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt2","points":[[1414141414,9]],"tags":["b"],"host":"test.host"},
+				{"metric":"cnt1","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
+			]
+		}`))
+
+		Expect(subject.Prep()).To(Succeed())
+		Expect(subject.Flush()).To(Succeed())
+
+		// after 4th flush
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
+			]
+		}`))
+	})
+
+})
+
+type mockDistribution struct {
+	instruments.Distribution
 }
 
-func testReporter(cb func(*Reporter, *bytes.Buffer)) {
-	body := &bytes.Buffer{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-
-		body.Reset()
-		if _, err := io.Copy(body, r.Body); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		} else {
-			w.WriteHeader(http.StatusAccepted)
-		}
-	}))
-	defer server.Close()
-
-	rep := New("BOGUS")
-	rep.Client.URL = server.URL
-	rep.Hostname = "test.host"
-	cb(rep, body)
-}
-
-func assertJSON(t *testing.T, have, want string) {
-	var h, w map[string]interface{}
-	if err := json.Unmarshal([]byte(have), &h); err != nil {
-		t.Fatal("unable to decode 'have' JSON", err)
-	}
-	if err := json.Unmarshal([]byte(want), &w); err != nil {
-		t.Fatal("unable to decode 'want' JSON", err)
-	}
-
-	if !reflect.DeepEqual(h, w) {
-		norm := strings.NewReplacer(" ", "", "\t", "", "\n", "")
-		t.Errorf("want:\n%s\nhave:\n%s", norm.Replace(want), norm.Replace(have))
-	}
-}
-
-func assertNoError(t *testing.T, err error) {
-	if err != nil {
-		t.Fatal("wanted no error, but got", err.Error())
-	}
-}
+func (mockDistribution) Quantile(_ float64) float64 { return 1000 }

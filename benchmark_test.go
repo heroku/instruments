@@ -12,7 +12,7 @@ func BenchmarkCounter(b *testing.B) {
 	c := instruments.NewCounter()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.Update(int64(i))
+		c.Update(float64(i))
 		c.Snapshot()
 	}
 }
@@ -21,27 +21,27 @@ func BenchmarkRate(b *testing.B) {
 	r := instruments.NewRate()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Update(int64(i))
+		r.Update(float64(i))
 		r.Snapshot()
 	}
 }
 
 func BenchmarkReservoir(b *testing.B) {
-	r := instruments.NewReservoir(-1)
+	r := instruments.NewReservoir()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Update(int64(i))
-		r.Snapshot()
+		r.Update(float64(i))
+		instruments.ReleaseDistribution(r.Snapshot())
 	}
 }
 
 func BenchmarkTimer(b *testing.B) {
-	r := instruments.NewTimer(-1)
+	r := instruments.NewTimer()
 	s := time.Now()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Since(s)
-		r.Snapshot()
+		instruments.ReleaseDistribution(r.Snapshot())
 	}
 }
 
@@ -50,7 +50,7 @@ func BenchmarkRegistry_Register(b *testing.B) {
 	defer r.Close()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r.Register(fmt.Sprintf("foo.%d", i), nil, instruments.NewRate())
+		r.Register(fmt.Sprintf("foo.%d", i), nil, instruments.NewCounter())
 	}
 }
 

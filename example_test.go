@@ -2,10 +2,31 @@ package instruments_test
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/bsm/instruments"
+	"github.com/bsm/instruments/logreporter"
 )
+
+func ExampleRegistry() {
+	// Create new registry instance, flushing at minutely intervals
+	registry := instruments.New(time.Minute, "myapp.")
+	defer registry.Close()
+
+	// Subscribe a reporter
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	registry.Subscribe(logreporter.New(logger))
+
+	// Fetch a timer
+	timer := registry.Timer("processing-time", []string{"tag1", "tag2"})
+
+	// Measure something
+	start := time.Now()
+	time.Sleep(20 * time.Millisecond)
+	timer.Since(start)
+}
 
 func ExampleCounter() {
 	counter := instruments.NewCounter()
@@ -23,7 +44,7 @@ func ExampleRate() {
 }
 
 func ExampleReservoir() {
-	reservoir := instruments.NewReservoir(-1)
+	reservoir := instruments.NewReservoir()
 	reservoir.Update(12)
 	reservoir.Update(54)
 	reservoir.Update(34)
@@ -33,9 +54,9 @@ func ExampleReservoir() {
 
 func ExampleGauge() {
 	gauge := instruments.NewGauge()
-	gauge.Update(35)
+	gauge.Update(35.6)
 	fmt.Println(gauge.Snapshot())
-	// Output: 35
+	// Output: 35.6
 }
 
 func ExampleDerive() {
@@ -46,17 +67,9 @@ func ExampleDerive() {
 }
 
 func ExampleTimer() {
-	timer := instruments.NewTimer(-1)
+	timer := instruments.NewTimer()
 	ts := time.Now()
 	time.Sleep(10 * time.Millisecond)
 	timer.Since(ts)
-	fmt.Println(timer.Snapshot().Quantile(0.99))
-}
-
-func ExampleTimer_Time() {
-	timer := instruments.NewTimer(-1)
-	timer.Time(func() {
-		time.Sleep(10 * time.Millisecond)
-	})
 	fmt.Println(timer.Snapshot().Quantile(0.99))
 }

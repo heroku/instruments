@@ -1,5 +1,7 @@
 # Instruments
 
+[![Build Status](https://travis-ci.org/bsm/instruments.svg)](https://travis-ci.org/bsm/instruments) [![GoDoc](https://godoc.org/github.com/bsm/instruments?status.svg)](https://godoc.org/github.com/bsm/instruments)
+
 Instruments allows you to collects metrics over discrete time intervals.
 This a fork of the (original library)[https://github.com/heroku/instruments] which
 comes with several new additions - consider it a v2!
@@ -12,36 +14,8 @@ The new features include:
 * Slighly faster
 * More convenient API
 * Support for tags
-
-
-## Installation
-
-Download and install:
-
-```
-$ go get github.com/bsm/instruments
-```
-
-Add it to your code:
-
-```go
-import "github.com/bsm/instruments"
-```
-
-## Usage
-
-```go
-timer := instruments.NewTimer(-1)
-
-registry := reporter.NewRegistry()
-registry.Register("processing-time", timer)
-
-go reporter.Log("process", registry, time.Minute)
-
-timer.Time(func() {
-  ...
-})
-```
+* Built-in reporters
+* Accurate histograms
 
 ## Instruments
 
@@ -58,20 +32,9 @@ These base instruments are available:
 
 You can create custom instruments or compose new instruments form the built-in instruments as long as they implements the Sample or Discrete interfaces.
 
-## Reporters
+## Documentation
 
-Registry enforce the Discrete and Sample interfaces, creating a custom Reporter should be trivial, for example:
-
-```go
-for k, m := range registry.Instruments() {
-  switch i := m.(type) {
-  case instruments.Discrete:
-    report(k, i.Snapshot())
-  case instruments.Sample:
-    report(k, i.Snapshot().Quantile(0.95))
-  }
-}
-```
+Please see the [API documentation](https://godoc.org/github.com/bsm/instruments) for package and API descriptions and examples.
 
 ## See also
 
