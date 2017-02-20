@@ -1,7 +1,8 @@
 language: go
 sudo: false
 go:
-  - 1.7.4
+  - 1.8
+  - 1.7.5
   - 1.6.4
 install:
 	- go get -u -t ./...
