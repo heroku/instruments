@@ -49,7 +49,7 @@ var _ = ginkgo.Describe("Instruments", func() {
 		d.Update(7)
 		time.Sleep(10 * time.Millisecond)
 		d.Update(12)
-		Expect(d.Snapshot()).To(BeNumerically("~", 200, 20))
+		Expect(d.Snapshot()).To(BeNumerically("~", 200, 50))
 	})
 
 	ginkgo.It("should update rates", func() {
