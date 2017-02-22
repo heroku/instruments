@@ -204,7 +204,7 @@ func NewTimer() *Timer {
 
 // Update adds duration to the sample in ms.
 func (t *Timer) Update(d time.Duration) {
-	t.r.Update(float64(d) / 1e6)
+	t.r.Update(d.Seconds() * 1000)
 }
 
 // Snapshot returns durations distribution

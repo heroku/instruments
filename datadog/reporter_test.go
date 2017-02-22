@@ -55,8 +55,8 @@ var _ = ginkgo.Describe("Reporter", func() {
 			"series":[
 				{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
 				{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
-				{"metric":"tmr1.p95","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"},
-				{"metric":"tmr1.p99","points":[[1414141414,1000]],"tags":["a"],"host":"test.host"}
+				{"metric":"tmr1.p95","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"},
+				{"metric":"tmr1.p99","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"}
 			]
 		}`))
 
@@ -103,4 +103,4 @@ type mockDistribution struct {
 	instruments.Distribution
 }
 
-func (mockDistribution) Quantile(_ float64) float64 { return 1000 }
+func (mockDistribution) Quantile(_ float64) float64 { return 100.1 }

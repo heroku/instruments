@@ -64,9 +64,11 @@ var _ = ginkgo.Describe("Instruments", func() {
 	ginkgo.It("should update timers", func() {
 		t := NewTimer()
 		for i := 0; i < 100; i++ {
-			t.Update(time.Second * time.Duration(i))
+			t.Update(time.Millisecond * time.Duration(i))
 		}
-		Expect(t.Snapshot().Mean()).To(Equal(49500.0))
+		s := t.Snapshot()
+		Expect(s.Mean()).To(Equal(49.5))
+		Expect(s.Quantile(0.75)).To(Equal(74.5))
 	})
 
 })
