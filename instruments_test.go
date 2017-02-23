@@ -54,11 +54,15 @@ var _ = ginkgo.Describe("Instruments", func() {
 
 	ginkgo.It("should update rates", func() {
 		r := NewRate()
-		for i := 0; i < 100; i++ {
-			r.Update(float64(i))
-		}
-		Expect(r.Snapshot()).To(BeNumerically(">", 1e6))
-		Eventually(r.Snapshot).Should(BeNumerically("<", 1e5))
+		Expect(r.Snapshot()).To(Equal(0.0))
+
+		r.Update(100)
+		time.Sleep(10 * time.Millisecond)
+		Expect(r.Snapshot()).To(BeNumerically("~", 10000, 300))
+
+		r.Update(100)
+		time.Sleep(time.Millisecond)
+		Expect(r.Snapshot()).To(BeNumerically("~", 100000, 20000))
 	})
 
 	ginkgo.It("should update timers", func() {

@@ -80,7 +80,7 @@ func NewRate() *Rate {
 func NewRateScale(d time.Duration) *Rate {
 	return &Rate{
 		time: time.Now().UnixNano(),
-		unit: float64(d),
+		unit: d.Seconds(),
 	}
 }
 
@@ -93,8 +93,8 @@ func (r *Rate) Update(v float64) {
 // and reset the count to zero.
 func (r *Rate) Snapshot() float64 {
 	now := time.Now().UnixNano()
-	dur := now - atomic.SwapInt64(&r.time, now)
-	return r.count.Snapshot() / float64(dur) * r.unit
+	dur := time.Duration(now - atomic.SwapInt64(&r.time, now))
+	return r.count.Snapshot() / dur.Seconds() * r.unit
 }
 
 // --------------------------------------------------------------------
@@ -116,7 +116,7 @@ func NewDeriveScale(v float64, d time.Duration) *Derive {
 		value: math.Float64bits(v),
 		rate: Rate{
 			time: time.Now().UnixNano(),
-			unit: float64(d),
+			unit: d.Seconds(),
 		},
 	}
 }
