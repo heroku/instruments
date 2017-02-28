@@ -12,6 +12,7 @@ const DefaultURL = "https://app.datadoghq.com/api/v1/series"
 
 type Client struct {
 	apiKey string
+	client *http.Client
 
 	// URL is the series URL to push data to.
 	// Default: DefaultURL
@@ -21,6 +22,7 @@ type Client struct {
 // NewClient creates a new API client.
 func NewClient(apiKey string) *Client {
 	return &Client{
+		client: &http.Client{},
 		apiKey: apiKey,
 		URL:    DefaultURL,
 	}
@@ -33,13 +35,17 @@ func (c *Client) Post(metrics []Metric) error {
 	}{metrics}
 
 	body := new(bytes.Buffer)
-	err := json.NewEncoder(body).Encode(&series)
-	if err != nil {
+	if err := json.NewEncoder(body).Encode(&series); err != nil {
 		return err
 	}
 
-	url := c.URL + "?api_key=" + c.apiKey
-	resp, err := http.Post(url, "application/json", body)
+	req, err := http.NewRequest("POST", c.URL+"?api_key="+c.apiKey, body)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
