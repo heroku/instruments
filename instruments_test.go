@@ -62,7 +62,7 @@ var _ = ginkgo.Describe("Instruments", func() {
 
 		r.Update(100)
 		time.Sleep(time.Millisecond)
-		Expect(r.Snapshot()).To(BeNumerically("~", 100000, 20000))
+		Expect(r.Snapshot()).To(BeNumerically("~", 100000, 40000))
 	})
 
 	ginkgo.It("should update timers", func() {
