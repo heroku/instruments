@@ -71,8 +71,8 @@ var _ = ginkgo.Describe("Instruments", func() {
 			t.Update(time.Millisecond * time.Duration(i))
 		}
 		s := t.Snapshot()
-		Expect(s.Mean()).To(Equal(49.5))
-		Expect(s.Quantile(0.75)).To(Equal(74.5))
+		Expect(s.Mean()).To(BeNumerically("~", 49.5, 0.01))
+		Expect(s.Quantile(0.75)).To(BeNumerically("~", 74.5, 0.01))
 	})
 
 })
