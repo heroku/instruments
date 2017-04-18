@@ -75,6 +75,9 @@ func BenchmarkInstruments(b *testing.B) {
 		r.Register(fmt.Sprintf("foo.%d", i), instruments.NewRate())
 	}
 	b.ResetTimer()
+
+	// calling with Instruments() instead of Snapshot() as
+	// it is non-destructive
 	for i := 0; i < b.N; i++ {
 		r.Instruments()
 	}
