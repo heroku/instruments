@@ -2,9 +2,12 @@ package datadog
 
 import (
 	"bytes"
+	"compress/zlib"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"sync"
 )
 
 // DefaultURL is the default series URL the client sends metric data to
@@ -17,6 +20,8 @@ type Client struct {
 	// URL is the series URL to push data to.
 	// Default: DefaultURL
 	URL string
+
+	bfs, zws sync.Pool
 }
 
 // NewClient creates a new API client.
@@ -34,16 +39,25 @@ func (c *Client) Post(metrics []Metric) error {
 		Series []Metric `json:"series,omitempty"`
 	}{metrics}
 
-	body := new(bytes.Buffer)
-	if err := json.NewEncoder(body).Encode(&series); err != nil {
+	buf := c.buffer()
+	defer c.bfs.Put(buf)
+
+	bfz := c.zWriter(buf)
+	defer c.zws.Put(bfz)
+
+	if err := json.NewEncoder(bfz).Encode(&series); err != nil {
+		return err
+	}
+	if err := bfz.Flush(); err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", c.URL+"?api_key="+c.apiKey, body)
+	req, err := http.NewRequest("POST", c.URL+"?api_key="+c.apiKey, buf)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "deflate")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -55,6 +69,24 @@ func (c *Client) Post(metrics []Metric) error {
 		return fmt.Errorf("datadog: bad API response: %s", resp.Status)
 	}
 	return nil
+}
+
+func (c *Client) buffer() *bytes.Buffer {
+	if v := c.bfs.Get(); v != nil {
+		b := v.(*bytes.Buffer)
+		b.Reset()
+		return b
+	}
+	return new(bytes.Buffer)
+}
+
+func (c *Client) zWriter(w io.Writer) *zlib.Writer {
+	if v := c.zws.Get(); v != nil {
+		z := v.(*zlib.Writer)
+		z.Reset(w)
+		return z
+	}
+	return zlib.NewWriter(w)
 }
 
 // Metric represents a flushed metric
