@@ -2,6 +2,7 @@ package datadog
 
 import (
 	"bytes"
+	"compress/zlib"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -74,7 +75,14 @@ func newMockServer(last *mockServerRequest) *httptest.Server {
 		last.URL = r.URL
 		last.Body.Reset()
 
-		if _, err := io.Copy(&last.Body, r.Body); err != nil {
+		z, err := zlib.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer z.Close()
+
+		if _, err := io.Copy(&last.Body, z); err != nil && err != io.ErrUnexpectedEOF {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
