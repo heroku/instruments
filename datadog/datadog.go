@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 )
 
 // DefaultURL is the default series URL the client sends metric data to
@@ -44,6 +45,7 @@ func (c *Client) Post(metrics []Metric) error {
 
 	bfz := c.zWriter(buf)
 	defer c.zws.Put(bfz)
+	defer bfz.Close()
 
 	if err := json.NewEncoder(bfz).Encode(&series); err != nil {
 		return err
@@ -59,16 +61,28 @@ func (c *Client) Post(metrics []Metric) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "deflate")
 
+	for i := 1; i < 4; i++ {
+		code, err := c.post(req)
+		if err == nil || code == http.StatusForbidden || code == http.StatusUnauthorized {
+			return err
+		}
+		time.Sleep(time.Duration(i) * 200 * time.Millisecond)
+	}
+	return nil
+}
+
+func (c *Client) post(req *http.Request) (int, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("datadog: bad API response: %s", resp.Status)
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent:
+		return resp.StatusCode, nil
 	}
-	return nil
+	return resp.StatusCode, fmt.Errorf("datadog: bad API response: %s", resp.Status)
 }
 
 func (c *Client) buffer() *bytes.Buffer {
