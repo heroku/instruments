@@ -1,0 +1,21 @@
+name: lint
+on: [push, pull_request]
+jobs:
+  lint:
+    env:
+      GOPROXY: https://proxy.golang.org
+      GO111MODULE: on
+    strategy:
+      matrix:
+        go-version: [1.17.x]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+      - uses: actions/setup-go@331ce1d993939866bb63c32c6cbbfd48fa76fc57
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: lint
+        uses: golangci/golangci-lint-action@5c56cd6c9dc07901af25baab6f2b0d9f3b7c3018
+        with:
+          version: v1.41.1
+          skip-go-installation: true
