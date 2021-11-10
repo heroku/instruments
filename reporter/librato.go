@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/heroku/instruments"
 )
 
-const libratoURL = "https://metrics-api.librato.com/v1/metrics"
+const defaultLibratoURL = "https://metrics-api.librato.com/v1/metrics"
 
 type batch struct {
 	Gauges      []map[string]interface{} `json:"gauges,omitempty"`
@@ -18,7 +20,21 @@ type batch struct {
 	Source      string                   `json:"source"`
 }
 
-func (b batch) Post(email, token string) error {
+type client struct {
+	Email string
+	Token string
+}
+
+func (c *client) URL() string {
+	uri, found := os.LookupEnv("LIBRATO_API_URL")
+	if !found {
+		return defaultLibratoURL
+	}
+
+	return uri
+}
+
+func (c *client) Post(b batch) error {
 	if len(b.Gauges) == 0 {
 		return nil
 	}
@@ -28,13 +44,13 @@ func (b batch) Post(email, token string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", libratoURL, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", fmt.Sprint(c.URL()), bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(email, token)
+	req.SetBasicAuth(c.Email, c.Token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -51,6 +67,11 @@ func (b batch) Post(email, token string) error {
 
 // Librato logs metrics to librato every given duration.
 func Librato(email, token, source string, r *Registry, d time.Duration) {
+	client := &client{
+		Email: email,
+		Token: token,
+	}
+
 	for now := range time.Tick(d) {
 		b := batch{
 			Source:      source,
@@ -71,6 +92,10 @@ func Librato(email, token, source string, r *Registry, d time.Duration) {
 				"period": d.Seconds(),
 			})
 		}
-		b.Post(email, token)
+
+		err := client.Post(b)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
